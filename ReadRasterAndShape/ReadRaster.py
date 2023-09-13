@@ -89,7 +89,7 @@ class ReadRaster:
                 _y_list.append(py)
         return _x_list, _y_list
 
-    def WriteRasterFile(self, raster_ds_data, _output_path):
+    def WriteRasterFile(self, raster_ds_data, _output_path, _nodata=None):
         print('正在写出栅格文件...')
         if os.path.exists(_output_path):
             shutil.rmtree(_output_path)
@@ -97,7 +97,6 @@ class ReadRaster:
         else:
             os.makedirs(_output_path)
         output_name = os.path.splitext(os.path.split(_output_path)[-1])[0] + '.tif'
-        print(output_name)
         driver = gdal.GetDriverByName('GTIFF')
         write_ds = driver.Create(os.path.join(_output_path, output_name), self.raster_ds_x_size, self.raster_ds_y_size,
                                  1, gdal.GDT_Float32,
@@ -105,7 +104,10 @@ class ReadRaster:
         write_ds.SetGeoTransform(self.raster_ds_geotrans)
         write_ds.SetProjection(self.raster_ds_proj)
         # 写入数据
-        write_ds.GetRasterBand(1).WriteArray(raster_ds_data)
+        output_band = write_ds.GetRasterBand(1)
+        if _nodata is not None:
+            output_band.SetNoDataValue(_nodata)
+        output_band.WriteArray(raster_ds_data)
         write_ds.FlushCache()
         del write_ds
         print(f'栅格文件{output_name}写出完成.')

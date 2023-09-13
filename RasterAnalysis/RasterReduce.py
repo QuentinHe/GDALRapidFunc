@@ -19,12 +19,12 @@ def RasterReduce(_first_raster_path, _second_raster_path, _output_path):
     first_data = first_rr.ReadRasterFile()
     second_data = second_rr.ReadRasterFile()
     result = np.array(first_data) - np.array(second_data)
-    first_rr.WriteRasterFile(result, _output_path)
+    first_rr.WriteRasterFile(result, _output_path, _nodata=0)
     return None
 
 
 if __name__ == '__main__':
-    second_raster_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\0_BaseDEM\NASA_DEM\NASA_DEM.tif'
-    first_raster_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Predict_Result\NASA_2022\NASA_2022_Bin50\NASA_2022_Bin50.tif'
-    output_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Analysis_Raster_Result\NASA_DeltaH_2022'
+    first_raster_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Analysis_Raster_Result\2_Predict_Reduce_BaseDEM_Mask_RGI\Delta_NASA_2022\Delta_NASA_2022.tif'
+    second_raster_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Analysis_Raster_Result\2_Predict_Reduce_BaseDEM_Mask_RGI\Delta_NASA_2021\Delta_NASA_2021.tif'
+    output_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Analysis_Raster_Result\3_MaskResult_Reduce_Predict2019\2022_Reduce_2021'
     RasterReduce(first_raster_path, second_raster_path, output_path)
