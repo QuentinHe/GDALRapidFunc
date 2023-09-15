@@ -106,6 +106,32 @@ def DrawingFourLine(_x_axis, _y1_axis, _y2_axis, _y3_axis, _y4_axis, _title, _x_
     return None
 
 
+def DrawingBoxs(_y_data, _x_data, _x_axis_label, _y_axis_label, _title):
+    """
+    可以绘制箱线图，_y_data可以放置1组或多组数据；
+    推荐多组数据使用dict()存储，分别用keys(), values()获取值；
+    :param _title:  标题
+    :param _y_data: 数据
+    :param _x_data: x轴的坐标
+    :param _x_axis_label: x轴名称
+    :param _y_axis_label: y轴名称
+    :return: None
+    """
+    plt.grid(True)
+    plt.boxplot(_y_data,
+                medianprops={'color': 'red', 'linewidth': '1.5'},
+                meanline=True,
+                showmeans=True,
+                meanprops={'color': 'blue', 'ls': '--', 'linewidth': '1.5'},
+                flierprops={"marker": "o", "markerfacecolor": "red", "markersize": 3},
+                labels=_x_data)
+    plt.title(_title)
+    plt.xlabel(_x_axis_label)
+    plt.ylabel(_y_axis_label)
+    plt.show()
+    return None
+
+
 if __name__ == '__main__':
     y_axis = np.random.rand(20)
     x_axis = np.random.rand(20)
