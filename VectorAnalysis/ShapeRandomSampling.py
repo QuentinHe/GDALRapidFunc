@@ -34,11 +34,11 @@ def ShapeRandomSampling(_input_path, _output_path, _feature_columns, _percent):
 
     output_name = os.path.splitext(os.path.split(_output_path)[-1])[0]
 
-    if not os.path.exists(_output_path):  # \2019
-        os.makedirs(_output_path)  # \2019
+    if not os.path.exists(_output_path):
+        os.makedirs(_output_path)
         print('不存在ShapeRandomSampling处理后的文件，以创建文件夹...')
     else:
-        shutil.rmtree(_output_path)  # \2019
+        shutil.rmtree(_output_path)
         print('ShapeRandomSampling处理后的文件已存在，正在删除...')
 
     driver = ogr.GetDriverByName('ESRI ShapeFile')

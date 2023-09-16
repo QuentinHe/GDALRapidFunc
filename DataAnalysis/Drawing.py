@@ -106,7 +106,7 @@ def DrawingFourLine(_x_axis, _y1_axis, _y2_axis, _y3_axis, _y4_axis, _title, _x_
     return None
 
 
-def DrawingBoxs(_y_data, _x_data, _x_axis_label, _y_axis_label, _title):
+def DrawingBoxs(_y_data, _x_data, _x_axis_label, _y_axis_label, _title='Boxplot'):
     """
     可以绘制箱线图，_y_data可以放置1组或多组数据；
     推荐多组数据使用dict()存储，分别用keys(), values()获取值；
@@ -118,18 +118,45 @@ def DrawingBoxs(_y_data, _x_data, _x_axis_label, _y_axis_label, _title):
     :return: None
     """
     plt.grid(True)
-    plt.boxplot(_y_data,
-                medianprops={'color': 'red', 'linewidth': '1.5'},
-                meanline=True,
-                showmeans=True,
-                meanprops={'color': 'blue', 'ls': '--', 'linewidth': '1.5'},
-                flierprops={"marker": "o", "markerfacecolor": "red", "markersize": 3},
-                labels=_x_data)
+    _bp = plt.boxplot(_y_data,
+                      medianprops={'color': 'red', 'linewidth': '1.5'},
+                      meanline=True,
+                      showmeans=True,
+                      meanprops={'color': 'blue', 'ls': '--', 'linewidth': '1.5'},
+                      flierprops={"marker": "o", "markerfacecolor": "red", "markersize": 3},
+                      labels=_x_data)
     plt.title(_title)
     plt.xlabel(_x_axis_label)
     plt.ylabel(_y_axis_label)
     plt.show()
-    return None
+    return _bp
+
+
+def DrawingBoxsFilters(_boxplot):
+    """
+    找到每个箱线图中的异常值点，这里是指超过上下须的点。
+    根据返回值在DF中进行查找并删除矢量点。
+    :param _boxplot: boxplot对象
+    :return: boxs_max, boxs_min 上下须，以此来界定离群值
+    """
+    # 如何根据箱线图过滤异常值，并且将过滤的异常值返回到DataFrame中？
+    # 根据DF格式，其中包含标记为Bin_Lv的列，计算分箱的最大最小值、中位数、平均值、上下四分位数进行筛选。
+    # 这里的最大最小值是去除异常值之后的
+    # 输出箱线图的最大最小值和Q1 Q3线，其中两组array是一个箱线图，[相线min, 下须],[相线max, 上须]
+    # print([item.get_ydata() for item in _boxplot['whiskers']])
+    # 其他详细内容见下文: >https://zhuanlan.zhihu.com/p/565965487
+    # 箱子数量
+    boxs_num = len(_boxplot['whiskers']) / 2
+    boxs_max = [item.get_ydata()[0] for item in _boxplot['caps']][1::2]
+    boxs_min = [item.get_ydata()[0] for item in _boxplot['caps']][::2]
+    boxs_q1 = [min(item.get_ydata()) for item in _boxplot['boxes']]
+    boxs_q3 = [max(item.get_ydata()) for item in _boxplot['boxes']]
+    boxs_fliers = [item.get_ydata() for item in _boxplot['fliers']]
+    fliers_length = 0
+    for i in boxs_fliers:
+        fliers_length += len(i)
+    print(f'离群点个数:{fliers_length}')
+    return boxs_num, boxs_max, boxs_min
 
 
 if __name__ == '__main__':
@@ -137,3 +164,5 @@ if __name__ == '__main__':
     x_axis = np.random.rand(20)
     # linear = DrawingOneScatter(x_axis, y_axis, 'Random List', 'X', 'Y', 1)
     # DrawingOneLine(x_axis, y_axis, 'Random List', 'X', 'Y', 'Broken Line')
+    bp = DrawingBoxs([y_axis, x_axis], ['1', '2'], 'X', 'Y', 'Boxplot')
+    DrawingBoxsFilters(bp)

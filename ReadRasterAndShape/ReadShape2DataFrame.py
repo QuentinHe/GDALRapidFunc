@@ -69,7 +69,7 @@ def DataFrameWriteShape(_feature_df, _output_path, _output_prefix):
     # 设置驱动格式
     driver = ogr.GetDriverByName('ESRI SHAPEFILE')
     # 新建shp文件
-    new_shp_ds = driver.CreateDataSource(os.path.join(_output_path, _output_prefix , output_filename))
+    new_shp_ds = driver.CreateDataSource(os.path.join(_output_path, _output_prefix, output_filename))
     # 新建shp文件中的图层
     layer = new_shp_ds.CreateLayer(output_filename, srs=spatial_ref, geom_type=ogr.wkbPoint)
     filed_names = list(_feature_df)
@@ -179,8 +179,13 @@ class ReadPoint2DataFrame:
             feature_geom_y = float(feature_geom.split(' ')[2][:-1])
             feature_geom_list.append((feature_geom_x, feature_geom_y))
             # 循环每一个表头，并在dict中添加要素的每一列数据
-            for j in feature_columns:
-                feature_attribute_dict[j].append(feature.GetFieldAsString(j))
+            for index, item in enumerate(feature_columns):
+                if feature_columns_types[index] == 'Real':
+                    feature_attribute_dict[item].append(feature.GetFieldAsDouble(item))
+                elif feature_columns_types[index] == 'Integer':
+                    feature_attribute_dict[item].append(feature.GetFieldAsInteger(item))
+                else:
+                    feature_attribute_dict[item].append(feature.GetFieldAsString(item))
         self.feature_geom_list = feature_geom_list
         ds.Destroy()
         del ds

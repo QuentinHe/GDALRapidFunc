@@ -24,7 +24,7 @@ def RasterReduce(_first_raster_path, _second_raster_path, _output_path):
 
 
 if __name__ == '__main__':
-    first_raster_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Analysis_Raster_Result\2_Predict_Reduce_BaseDEM_Mask_RGI\Delta_NASA_2022\Delta_NASA_2022.tif'
-    second_raster_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Analysis_Raster_Result\2_Predict_Reduce_BaseDEM_Mask_RGI\Delta_NASA_2021\Delta_NASA_2021.tif'
-    output_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Analysis_Raster_Result\3_MaskResult_Reduce_Predict2019\2022_Reduce_2021'
+    first_raster_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Predict_Result\TESTA\2_MASK\NASA_2022_Bin50\NASA_2022_Bin50.tif'
+    second_raster_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Predict_Result\TESTA\2_MASK\NASA_2021_Bin50\NASA_2021_Bin50.tif'
+    output_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Predict_Result\TESTA\3_Annual\NASA_2022_Change'
     RasterReduce(first_raster_path, second_raster_path, output_path)
