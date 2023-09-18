@@ -59,26 +59,51 @@ def ShapeFilterOutliers(_input_path, _output_path, _x_df_field, _y_df_field):
     src_layer.ResetReading()
     print(f'源Feature个数为:{src_layer.GetFeatureCount()}')
 
+    print('正在为Feature创建原有字段...')
+    for n in range(temp_feature.GetFieldCount()):
+        output_field = ogr.FieldDefn(input_rsdf.feature_columns[n], temp_feature.GetFieldType(n))
+        output_field.SetWidth(50)
+        output_field.SetPrecision(8)
+        output_layer.CreateField(output_field)
+
     for num in np.arange(src_layer.GetFeatureCount()):
         feature = src_layer.GetFeature(num)
         filter_value = feature.GetFieldAsDouble(_y_df_field)
         filter_level = feature.GetFieldAsInteger(_x_df_field)
-        if boxs_min[filter_level-1] <= filter_value <= boxs_max[filter_level-1]:
+        if boxs_min[filter_level - 1] <= filter_value <= boxs_max[filter_level - 1]:
             output_layer.CreateFeature(feature)
             output_feature = output_layer.GetFeature(output_layer.GetFeatureCount() - 1)
+            for n in range(temp_feature.GetFieldCount()):
+                output_feature.SetField(input_rsdf.feature_columns[n], feature.GetField(n))
             output_layer.SetFeature(output_feature)
         # else:
         #     print(f'{feature.GetFieldAsDouble("Segment_ID")}')
 
     print(f'输出数据集长度为:{output_layer.GetFeatureCount()};'
           f'原数据集长度为:{src_layer.GetFeatureCount()};'
-          f'过滤数量:{src_layer.GetFeatureCount()-output_layer.GetFeatureCount()};')
+          f'过滤数量:{src_layer.GetFeatureCount() - output_layer.GetFeatureCount()};')
     src_ds.Release()
     output_ds.Release()
     return None
 
 
 if __name__ == '__main__':
-    input_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20230916\1_FilterOutliers\0_AddReduceElevation\NASA_2022\NASA_2022.shp'
-    output_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20230916\1_FilterOutliers\1_FilterOutliers\NASA_2022_Bin50'
-    ShapeFilterOutliers(input_path, output_path, 'Bin_50', 'Delta_Ele')
+    # input_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20230916\1_FilterOutliers\0_AddReduceElevation\SRTM_2019\SRTM_2019.shp'
+    # output_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20230916\1_FilterOutliers\1_FilterOutliers\SRTM_2019_Bin50'
+    # ShapeFilterOutliers(input_path, output_path, 'Bin_50', 'Delta_Ele')
+    input_folder_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20230916\1_FilterOutliers\0_AddReduceElevation'
+    output_folder_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20230916\1_FilterOutliers\1_FilterOutliers'
+    # 遍历指定文件夹获取所有shp文件
+    shp_path_list = []
+    shp_files_path_list = []
+    loop_fields = ['Bin_50', 'Bin_100', 'Bin_150', 'Bin_200']
+    for root, dirs, files in os.walk(input_folder_path):
+        for file in files:
+            if os.path.splitext(file)[1] == '.shp':
+                shp_path_list.append(os.path.join(root, file))
+                shp_files_path_list.append(os.path.splitext(file)[0])
+    for index, item in enumerate(shp_path_list):
+        for bins in loop_fields:
+            ShapeFilterOutliers(item, os.path.join(output_folder_path, shp_files_path_list[index] + '_' + bins), bins,
+                                'Delta_Ele')
+            print(f'{os.path.join(output_folder_path, shp_files_path_list[index] + "_" + bins)}执行完毕.')
