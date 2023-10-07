@@ -4,8 +4,6 @@
 # @Author : Hexk
 # @Descript : 使用一个矢量文件来掩膜提取栅格，矢量外的数据归为Nodata
 import shutil
-import numpy as np
-import pandas as pd
 from osgeo import gdal, ogr, osr
 import os
 
@@ -28,9 +26,8 @@ def RasterShapeMaskRaster(_input_shape_path, _input_raster_path, _output_raster_
     if os.path.exists(_output_raster_path):
         shutil.rmtree(_output_raster_path)
         print('正在删除已存在文件夹...')
-    else:
-        os.makedirs(_output_raster_path)
-        print('已创建输出文件夹.')
+    os.makedirs(_output_raster_path)
+    print('已创建输出文件夹.')
     output_name = os.path.splitext(os.path.split(_output_raster_path)[-1])[0] + '.tif'
     gdal.AllRegister()
     prog_func = gdal.TermProgress_nocb
@@ -48,11 +45,15 @@ def RasterShapeMaskRaster(_input_shape_path, _input_raster_path, _output_raster_
     )
     mask_result.FlushCache()
     del mask_result
-    return None
+    return os.path.join(_output_raster_path, output_name)
 
 
 if __name__ == '__main__':
-    input_shape_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\0_Landsat8\3_Landsat8_RGI_FourYear\3_Landsat8_RGI_2020.shp'
-    input_raster_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Predict_Result\TESTA\1_Reduce\NASA_2022\NASA_2022.tif'
-    output_raster_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Predict_Result\TESTA\2_MASK\NASA_2022_Bin50'
+    # input_shape_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\0_Landsat8\3_Landsat8_RGI_FourYear\3_Landsat8_RGI_2020.shp'
+    # input_raster_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Predict_Result\TESTA\1_Reduce\NASA_2022\NASA_2022.tif'
+    # output_raster_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Predict_Result\TESTA\2_MASK\NASA_2022_Bin50'
+    input_shape_path = r"E:\Glacier_DEM_Register\Tanggula_FourYear_Data\0_Landsat8\3_Landsat8_RGI_FourYear\3_Landsat8_RGI_2020.shp"
+    input_raster_path = r"E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231003\Merge_PredictResult_Bin_50\Merge_PredictResult_Bin_50.tif"
+    output_raster_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231003\3_Mask_PredictResult\2019_Bin_50'
     RasterShapeMaskRaster(input_shape_path, input_raster_path, output_raster_path)
+
