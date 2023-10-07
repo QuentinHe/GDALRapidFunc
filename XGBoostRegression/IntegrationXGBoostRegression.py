@@ -117,9 +117,9 @@ def IntegrationXGBoostRegression(_shape_path, _x_var, _y_var, _bin_level,
         x_df = temp_df[_x_var]
         y_df = temp_df[_y_var]
         x_train, x_test, y_train, y_test, = model_selection.train_test_split(x_df, y_df, train_size=0.7)
-        predict_data = XGBR.XGBoostRegression(x_train, y_train, x_test, y_test, predict_df)
-        output_predict_data = np.array(predict_data).reshape(reclassify_rr.raster_ds_y_size,
-                                                             reclassify_rr.raster_ds_x_size)
+        _predict_data = XGBR.XGBoostRegression(x_train, y_train, x_test, y_test, predict_df)
+        output_predict_data = np.array(_predict_data).reshape(reclassify_rr.raster_ds_y_size,
+                                                              reclassify_rr.raster_ds_x_size)
         output_path = os.path.join(_output_path, f'{_bin_level}_{i}')
         reclassify_rr.WriteRasterFile(output_predict_data, output_path)
     return None
@@ -161,10 +161,11 @@ def MergeRegressionClassify(_predict_folder_path, _raster_reclassify_path, _outp
     return merge_data
 
 
-def AnalysisResult(_shape_path, _raster_predict_path, _raster_reclassify_path, _bin_level, _year,
+def AnalysisResult(_shape_path, _raster_predict_path, _raster_reclassify_path, _bin_level, _year, _dem_type,
                    _output_csv_folder=None):
     """
     该函数是针对点结果进行统计分析，包括分析MAE RMSE STD等信息，最后输出成一个csv表格，CSV可以记录年份和Bin Lv但是无法记录DEM。
+    :param _dem_type:
     :param _shape_path: point点路径，
     :param _raster_predict_path: 预测结果数据路径
     :param _raster_reclassify_path: 分类栅格数据路径
@@ -247,7 +248,7 @@ def AnalysisResult(_shape_path, _raster_predict_path, _raster_reclassify_path, _
             shutil.rmtree(_output_csv_folder)
             print('正在删除已存在CSV文件夹路径')
         os.makedirs(_output_csv_folder)
-        csv_path = os.path.join(_output_csv_folder, f'{dem_item}_{_year}_{_bin_level}_{times}.csv')
+        csv_path = os.path.join(_output_csv_folder, f'{_dem_type}_{_year}_{_bin_level}_{times}.csv')
         csv_df.to_csv(csv_path)
     return None
 
@@ -259,6 +260,7 @@ def MaskRegionAnalysis(_input_shape_path, _input_raster_path, _output_raster_fol
                        _threshold=50, _output_csv_folder=None):
     """
     掩膜输入的两个栅格，并分级统计均值。
+    :param _dem_type:
     :param _input_shape_path: 输入裁剪的范围文件
     :param _input_raster_path: 输入裁剪的结果文件 predict
     :param _output_raster_folder: 输出文件的文件夹路径
@@ -305,286 +307,316 @@ def MaskRegionAnalysis(_input_shape_path, _input_raster_path, _output_raster_fol
         csv_df.loc[len(csv_df.index)] = ['TotalMean', np.mean(new_bin_mean)]
         times = time.strftime('%Y_%m_%d_%H%M%S', time.localtime())
         csv_path = os.path.join(_output_csv_folder,
-                                f'MaskAnalysis_{_year}_{_bin_level}_threshold{_threshold}_{times}.csv')
+                                f'MaskAnalysis_{_dem_type}_{_year}_{_bin_level}_threshold{_threshold}_{times}.csv')
         csv_df.to_csv(csv_path)
+    return None
+
+
+def MeanBinsRaster(_raster_folder, _output_path):
+    raster_paths_list, raster_files_list = PGF.PathGetFiles(_raster_folder, '.tif')
+    raster_means_list = []
+    dem_list = ['NASA', 'SRTM']
+    years_list = [i for i in range(2019, 2023)]
+    for dem_index, dem_item in enumerate(dem_list):
+        for years_index, years_item in enumerate(years_list):
+            for files_index, files_item in enumerate(raster_files_list):
+                if dem_item in files_item and str(years_item) in files_item:
+                    print(f'已找到{files_item}的Raster文件Path:{raster_paths_list[files_index]}')
+                    raster_means_list.append(raster_paths_list[files_index])
+            print(f'开始计算平均{dem_item}_{years_item}...')
+            raster_dict = dict()
+            for index, item in enumerate(raster_means_list):
+                raster_dict[index] = None
+                raster_rr = RR.ReadRaster(item)
+                raster_data = raster_rr.ReadRasterFile()
+                raster_dict[index] = raster_data
+            example_rr = RR.ReadRaster(raster_means_list[0])
+            example_data = example_rr.ReadRasterFile()
+            mean_data = np.zeros(example_data.shape)
+            for i in range(len(raster_means_list)):
+                mean_data += raster_dict[i]
+            mean_data = mean_data / len(raster_means_list)
+            output_path = os.path.join(_output_path, f'{dem_item}_{years_item}')
+            example_rr.WriteRasterFile(mean_data, output_path, _nodata=0)
     return None
 
 
 if __name__ == '__main__':
     # shape_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20230916\1_FilterOutliers\1_FilterOutliers\NASA_2019_Bin_50\NASA_2019_Bin_50.shp'
     # raster_folder_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20230916\1_RasterData'
-    # ------PART 1------
+    # # ------PART 1------
     # IntegrationXGBoostRegression(shape_path,
     #                              ['Slope', 'Aspect', 'Undulation', 'Proj_X', 'Proj_Y'],
     #                              ['Delta_Ele'],
     #                              'Bin_50',
-    #                              _output_path=r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231003',
+    #                              _output_path=r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231003\Predict',
     #                              _raster_slope_path=r"E:\Glacier_DEM_Register\Tanggula_FourYear_Data\DEM_Process\1_DEM_Aspect\NASA_Aspect_Level\NASA_Aspect_Level.tif",
     #                              _raster_undulation_path=r"E:\Glacier_DEM_Register\Tanggula_FourYear_Data\DEM_Process\3_DEM_Undulation\NASA\3_NASA_Undulation.tif",
     #                              _raster_aspect_path=r"E:\Glacier_DEM_Register\Tanggula_FourYear_Data\DEM_Process\1_DEM_Aspect\NASA_DEM\1_NASA_Aspect.tif",
     #                              _raster_reclassify_path=r"E:\Glacier_DEM_Register\Tanggula_FourYear_Data\DEM_Process\2_DEM_Reclassify\NASA_Reclassify_50\NASA_Reclassify_50.tif",
     #                              _raster_projx_path=r"E:\Glacier_DEM_Register\Tanggula_FourYear_Data\DEM_Process\4_DEM_ProjCoords\ProjX\ProjX.tif",
     #                              _raster_projy_path=r"E:\Glacier_DEM_Register\Tanggula_FourYear_Data\DEM_Process\4_DEM_ProjCoords\ProjY\ProjY.tif")
-    # ------PART 2------
-    # predict_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231003'
+    # # ------PART 2------
+    # predict_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231003\Predict'
     # MergeRegressionClassify(predict_path,
-    #                         _raster_reclassify_path=r"E:\Glacier_DEM_Register\Tanggula_FourYear_Data\DEM_Process\2_DEM_Reclassify\NASA_Reclassify_50\NASA_Reclassify_50.tif")
+    #                         _raster_reclassify_path=r"E:\Glacier_DEM_Register\Tanggula_FourYear_Data\DEM_Process\2_DEM_Reclassify\NASA_Reclassify_50\NASA_Reclassify_50.tif",
+    #                         _dem_type='NASA',
+    #                         _output_merge_folder=r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231003')
     # ------PART 3------
-    # predict_path = r"E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231003\Merge_PredictResult_Bin_50\Merge_PredictResult_Bin_50.tif"
-    # predict_rr = RR.ReadRaster(predict_path)
-    # predict_data = predict_rr.ReadRasterFile()
-    # reclassify_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\DEM_Process\2_DEM_Reclassify\NASA_Reclassify_50\NASA_Reclassify_50.tif'
-    # output_csv_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231003\Analysis_CSV'
-    # # AnalysisResult(shape_path, predict_data, reclassify_path, 'Bin_50', 2019, output_csv_path)
-    # # ------PART 4------
-    # region_path = r"E:\Glacier_DEM_Register\Tanggula_FourYear_Data\0_Landsat8\3_Landsat8_RGI_FourYear\3_Landsat8_RGI_2020.shp"
-    # predict_path = r"E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231003\Merge_PredictResult_Bin_50\Merge_PredictResult_Bin_50.tif"
-    # output_mask_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231003\3_Mask_PredictResult\2019_Bin_50'
-    # MaskRegionAnalysis(region_path, predict_path, output_mask_path, reclassify_path, _bin_level='Bin_50', _year=2019,
-    #                    _output_csv_folder=output_csv_path, _threshold=30)
-    """
-    第一遍跑通完毕，接下来是整理一下4年运行的数据。
-    """
-    # RGI区域
-    rgi_path = r"E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\0_BaseData\BaseRGIRegion\3_Landsat8_RGI_2020.shp"
-    # 基准DEM
-    dem_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\0_BaseData\BaseDEM'
-    dem_path_list, dem_files_list = PGF.PathGetFiles(dem_folder, '.tif')
-    # NASA数据
-    nasa_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\0_BaseData\BaseDEMProductions\NASA'
-    nasa_path_list, nasa_files_list = PGF.PathGetFiles(nasa_folder, '.tif')
-    # SRTM数据
-    srtm_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\0_BaseData\BaseDEMProductions\SRTM'
-    srtm_path_list, srtm_files_list = PGF.PathGetFiles(srtm_folder, '.tif')
-    # 公共数据
-    common_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\0_BaseData\BaseDEMProductions\CommonData'
-    common_path_list, common_files_list = PGF.PathGetFiles(common_folder, '.tif')
-    # Point数据
-    nasa_point_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\0_BaseData\BasePoint\NASA'
-    srtm_point_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\0_BaseData\BasePoint\SRTM'
-    nasa_point_path_list, nasa_point_files_list = PGF.PathGetFiles(nasa_point_folder, '.shp')
-    srtm_point_path_list, srtm_point_files_list = PGF.PathGetFiles(srtm_point_folder, '.shp')
-
+    predict_path = r"E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231003\MergePredictResult_Bin_50\MergePredictResult_Bin_50.tif"
+    predict_rr = RR.ReadRaster(predict_path)
+    predict_data = predict_rr.ReadRasterFile()
+    reclassify_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\DEM_Process\2_DEM_Reclassify\NASA_Reclassify_50\NASA_Reclassify_50.tif'
+    output_csv_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231003\Analysis_CSV'
+    # AnalysisResult(shape_path, predict_data, reclassify_path, 'Bin_50', 2019, output_csv_path)
+    # ------PART 4------
+    region_path = r"E:\Glacier_DEM_Register\Tanggula_FourYear_Data\0_Landsat8\3_Landsat8_RGI_FourYear\3_Landsat8_RGI_2020.shp"
+    output_mask_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231003\3_Mask_PredictResult\2019_Bin_50'
+    MaskRegionAnalysis(region_path, predict_path, output_mask_path, reclassify_path, _bin_level='Bin_50', _year=2019,
+                       _output_csv_folder=output_csv_path, _threshold=30, _dem_type='NASA')
     # """
-    # PART 1
+    # 第一遍跑通完毕，接下来是整理一下4年运行的数据。
     # """
-    # # 先循环NASA，再循环SRTM
-    # # 循环年份
-    # # 循环某一年的bin
-    # xgboost_output_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\1_PredictData\1_XGBoostData'
-    # # 循环DEM， 先NASA，再SRTM
-    # for dem_index, dem_item in enumerate(dem_path_list):
-    #     dem_type = dem_files_list[dem_index].split('_')[0]  # NASA or SRTM
-    #     # dem_type = 'SRTM'
-    #     # 循环年份
-    #     for year_index, year_item in enumerate([i for i in range(2019, 2023)]):
-    #         # 循环Bin等级
-    #         for bin_index, bin_item in enumerate([i * 50 for i in range(1, 5)]):
+    # # RGI区域
+    # rgi_path = r"E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\0_BaseData\BaseRGIRegion\3_Landsat8_RGI_2020.shp"
+    # # 基准DEM
+    # dem_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\0_BaseData\BaseDEM'
+    # dem_path_list, dem_files_list = PGF.PathGetFiles(dem_folder, '.tif')
+    # # NASA数据
+    # nasa_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\0_BaseData\BaseDEMProductions\NASA'
+    # nasa_path_list, nasa_files_list = PGF.PathGetFiles(nasa_folder, '.tif')
+    # # SRTM数据
+    # srtm_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\0_BaseData\BaseDEMProductions\SRTM'
+    # srtm_path_list, srtm_files_list = PGF.PathGetFiles(srtm_folder, '.tif')
+    # # 公共数据
+    # common_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\0_BaseData\BaseDEMProductions\CommonData'
+    # common_path_list, common_files_list = PGF.PathGetFiles(common_folder, '.tif')
+    # # Point数据
+    # nasa_point_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\0_BaseData\BasePoint\NASA'
+    # srtm_point_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\0_BaseData\BasePoint\SRTM'
+    # nasa_point_path_list, nasa_point_files_list = PGF.PathGetFiles(nasa_point_folder, '.shp')
+    # srtm_point_path_list, srtm_point_files_list = PGF.PathGetFiles(srtm_point_folder, '.shp')
+    #
+    # # """
+    # # PART 1
+    # # """
+    # # # 先循环NASA，再循环SRTM
+    # # # 循环年份
+    # # # 循环某一年的bin
+    # # xgboost_output_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\1_PredictData\1_XGBoostData'
+    # # # 循环DEM， 先NASA，再SRTM
+    # # for dem_index, dem_item in enumerate(dem_path_list):
+    # #     dem_type = dem_files_list[dem_index].split('_')[0]  # NASA or SRTM
+    # #     # dem_type = 'SRTM'
+    # #     # 循环年份
+    # #     for year_index, year_item in enumerate([i for i in range(2019, 2023)]):
+    # #         # 循环Bin等级
+    # #         for bin_index, bin_item in enumerate([i * 50 for i in range(1, 5)]):
+    # #             # 寻找Point File Path
+    # #             point_path = None
+    # #             if dem_type == 'NASA':
+    # #                 print('正在执行NASA部分...')
+    # #                 # 找到对应的point_path
+    # #                 for point_files_index, point_files_item in enumerate(nasa_point_files_list):
+    # #                     if dem_type in point_files_item and str(
+    # #                             year_item) in point_files_item and f'Bin_{bin_item}' in point_files_item:
+    # #                         print(f'当前执行条件为:{dem_type} {year_item} {bin_item}'
+    # #                               f'已找到文件名为:{point_files_item}')
+    # #                         point_path = nasa_point_path_list[point_files_index]
+    # #                         break
+    # #                     else:
+    # #                         print(f'ERROR: 不存在符合条件为:{dem_type} {year_item} {bin_item}的Point Shape文件.*')
+    # #             elif dem_type == 'SRTM':
+    # #                 print('正在执行SRTM部分...')
+    # #                 # 找到对应的point_path
+    # #                 for point_files_index, point_files_item in enumerate(srtm_point_files_list):
+    # #                     if dem_type in point_files_item and str(
+    # #                             year_item) in point_files_item and f'Bin_{bin_item}' in point_files_item:
+    # #                         print(f'当前执行条件为:{dem_type} {year_item} {bin_item}'
+    # #                               f'已找到文件名为:{point_files_item}')
+    # #                         point_path = srtm_point_path_list[point_files_index]
+    # #                         break
+    # #                     else:
+    # #                         print(f'ERROR: 不存在符合条件为:{dem_type} {year_item} {bin_item}的Point Shape文件.')
+    # #             else:
+    # #                 print('dem_type存在错误，请检查基准DEM的命名。')
+    # #
+    # #             # 生成bin字段
+    # #             bin_level = f'Bin_{bin_item}'
+    # #
+    # #             # 生成输出预测结果的路径
+    # #             xgboost_output_path = os.path.join(xgboost_output_folder, f'{dem_type}_{year_item}_{bin_level}')
+    # #             if os.path.exists(xgboost_output_path):
+    # #                 shutil.rmtree(xgboost_output_path)
+    # #                 print('正在删除已存在文件夹')
+    # #             os.makedirs(xgboost_output_path)
+    # #             print(f'已创建{dem_type}_{year_item}_{bin_level}的输出文件夹.')
+    # #
+    # #             # 找到其他DEM输入参数的路径
+    # #             raster_slope_path, raster_aspect_path, raster_undulation_path, raster_reclassify_path = None, None, None, None
+    # #             raster_projx_path = None
+    # #             raster_projy_path = None
+    # #             for proj_index, proj_item in enumerate(common_files_list):
+    # #                 if 'X' in proj_item:
+    # #                     raster_projx_path = common_path_list[proj_index]
+    # #                     print(f'已经找到{dem_type}的Proj X文件')
+    # #                 elif 'Y' in proj_item:
+    # #                     raster_projy_path = common_path_list[proj_index]
+    # #                     print(f'已经找到{dem_type}的Proj Y文件')
+    # #             if dem_type == 'NASA' or 'nasa':
+    # #                 print('正在寻找NASA的相关DEM产品路径...')
+    # #                 for dem_productions_index, dem_productions_item in enumerate(nasa_files_list):
+    # #                     if 'Slope' in dem_productions_item:
+    # #                         print(f'已经找到{dem_type}的Slope文件.')
+    # #                         raster_slope_path = nasa_path_list[dem_productions_index]
+    # #                     elif 'Aspect' in dem_productions_item:
+    # #                         print(f'已经找到{dem_type}的Aspect文件.')
+    # #                         raster_aspect_path = nasa_path_list[dem_productions_index]
+    # #                     elif 'Undulation' in dem_productions_item:
+    # #                         print(f'已经找到{dem_type}的Undulation文件.')
+    # #                         raster_undulation_path = nasa_path_list[dem_productions_index]
+    # #                     elif 'Reclassify' in dem_productions_item and f'_{bin_item}' in dem_productions_item:
+    # #                         print(f'已经找到{dem_type}的Reclassify文件,等级{bin_item}.')
+    # #                         raster_reclassify_path = nasa_path_list[dem_productions_index]
+    # #             elif dem_type == 'SRTM' or 'srtm':
+    # #                 print('正在寻找SRTM的相关DEM产品路径...')
+    # #                 for dem_productions_index, dem_productions_item in enumerate(srtm_files_list):
+    # #                     if 'Slope' in dem_productions_item:
+    # #                         print(f'已经找到{dem_type}的Slope文件.')
+    # #                         raster_slope_path = srtm_path_list[dem_productions_index]
+    # #                     elif 'Aspect' in dem_productions_item:
+    # #                         print(f'已经找到{dem_type}的Aspect文件.')
+    # #                         raster_aspect_path = srtm_path_list[dem_productions_index]
+    # #                     elif 'Undulation' in dem_productions_item:
+    # #                         print(f'已经找到{dem_type}的Undulation文件.')
+    # #                         raster_undulation_path = srtm_path_list[dem_productions_index]
+    # #                     elif 'Reclassify' in dem_productions_item and f'_{bin_item}' in dem_productions_item:
+    # #                         print(f'已经找到{dem_type}的Reclassify文件,等级{bin_item}.')
+    # #                         raster_reclassify_path = srtm_path_list[dem_productions_index]
+    # #             else:
+    # #                 print('dem_type存在错误，请检查基准DEM的命名。')
+    # #
+    # #             print(f"当前文件路径:\n"
+    # #                   f"输出路径:{xgboost_output_path}\n"
+    # #                   f"Slope:{raster_slope_path}\n"
+    # #                   f"Aspect:{raster_aspect_path}\n"
+    # #                   f"Undulation:{raster_undulation_path}\n"
+    # #                   f"Reclassify:{raster_reclassify_path}\n"
+    # #                   f"ProjX:{raster_projx_path}\n"
+    # #                   f"ProjY:{raster_projy_path}\n")
+    # #             # 开始执行预测
+    # #             IntegrationXGBoostRegression(point_path,
+    # #                                          ['Slope', 'Aspect', 'Undulation', 'Proj_X', 'Proj_Y'],
+    # #                                          ['Delta_Ele'],
+    # #                                          bin_level,
+    # #                                          _output_path=xgboost_output_path,
+    # #                                          _raster_slope_path=raster_slope_path,
+    # #                                          _raster_undulation_path=raster_undulation_path,
+    # #                                          _raster_aspect_path=raster_aspect_path,
+    # #                                          _raster_reclassify_path=raster_reclassify_path,
+    # #                                          _raster_projx_path=raster_projx_path,
+    # #                                          _raster_projy_path=raster_projy_path)
+    # # """
+    # # PART 2
+    # # """
+    # # # 融合
+    # # dem_type_list = ['NASA', 'SRTM']
+    # # years_list = [i for i in range(2019, 2023)]
+    # # bin_list = [i * 50 for i in range(1, 5)]
+    # # merge_output_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\1_PredictData\2_MergeData'
+    # # for dem_index, dem_item in enumerate(dem_type_list):
+    # #     for year_index, year_item in enumerate(years_list):
+    # #         for bin_index, bin_item in enumerate(bin_list):
+    # #             predict_folder = os.path.join(xgboost_output_folder, f'{dem_item}_{year_item}_Bin_{bin_item}')
+    # #             raster_reclassify_path = None
+    # #             if dem_item == 'NASA':
+    # #                 print('正在寻找NASA的相关DEM产品路径...')
+    # #                 for dem_productions_index, dem_productions_item in enumerate(nasa_files_list):
+    # #                     if 'Reclassify' in dem_productions_item and f'_{bin_item}' in dem_productions_item:
+    # #                         print(f'已经找到{dem_type}的Reclassify文件,等级{bin_item}.')
+    # #                         raster_reclassify_path = nasa_path_list[dem_productions_index]
+    # #             elif dem_item == 'SRTM':
+    # #                 print('正在寻找SRTM的相关DEM产品路径...')
+    # #                 for dem_productions_index, dem_productions_item in enumerate(srtm_files_list):
+    # #                     if 'Reclassify' in dem_productions_item and f'_{bin_item}' in dem_productions_item:
+    # #                         print(f'已经找到{dem_type}的Reclassify文件,等级{bin_item}.')
+    # #                         raster_reclassify_path = srtm_path_list[dem_productions_index]
+    # #
+    # #             MergeRegressionClassify(predict_folder, raster_reclassify_path, merge_output_folder, _dem_type=dem_item,
+    # #                                     _year=year_item)
+    # """
+    # PART 3
+    # """
+    # # 分析Point位置的Error
+    # merge_output_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\1_PredictData\2_MergeData'
+    # output_error_csv_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\2_CSVData\1_ErrorCSV'
+    # output_mask_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\1_PredictData\3_MaskData'
+    # output_change_csv_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\2_CSVData\2_ChangeCSV'
+    # merge_predict_paths, merge_predict_files_list = PGF.PathGetFiles(merge_output_folder, '.tif')
+    # dem_type_list = ['NASA', 'SRTM']
+    # years_list = [i for i in range(2019, 2023)]
+    # bin_list = [i * 50 for i in range(1, 5)]
+    # point_path, merge_predict_path, raster_reclassify_path = None, None, None
+    # for dem_index, dem_item in enumerate(dem_type_list):
+    #     for year_index, year_item in enumerate(years_list):
+    #         for bin_index, bin_item in enumerate(bin_list):
     #             # 寻找Point File Path
-    #             point_path = None
-    #             if dem_type == 'NASA':
+    #             if dem_item == 'NASA':
     #                 print('正在执行NASA部分...')
     #                 # 找到对应的point_path
     #                 for point_files_index, point_files_item in enumerate(nasa_point_files_list):
-    #                     if dem_type in point_files_item and str(
+    #                     if dem_item in point_files_item and str(
     #                             year_item) in point_files_item and f'Bin_{bin_item}' in point_files_item:
-    #                         print(f'当前执行条件为:{dem_type} {year_item} {bin_item}'
+    #                         print(f'当前执行条件为:{dem_item} {year_item} {bin_item}'
     #                               f'已找到文件名为:{point_files_item}')
     #                         point_path = nasa_point_path_list[point_files_index]
     #                         break
     #                     else:
-    #                         print(f'ERROR: 不存在符合条件为:{dem_type} {year_item} {bin_item}的Point Shape文件.*')
-    #             elif dem_type == 'SRTM':
+    #                         print(f'ERROR: 不存在符合条件为:{dem_item} {year_item} {bin_item}的Point Shape文件.')
+    #                 for dem_productions_index, dem_productions_item in enumerate(nasa_files_list):
+    #                     if 'Reclassify' in dem_productions_item and f'_{bin_item}' in dem_productions_item:
+    #                         print(f'已经找到{dem_item}的Reclassify文件,等级{bin_item}.')
+    #                         raster_reclassify_path = nasa_path_list[dem_productions_index]
+    #                 for merge_predict_index, merge_predict_item in enumerate(merge_predict_files_list):
+    #                     if dem_item in merge_predict_item and str(
+    #                             year_item) in merge_predict_item and f'_{bin_item}' in merge_predict_item:
+    #                         print(f'已经找到{dem_item}的Merge文件,等级{bin_item}.')
+    #                         merge_predict_path = merge_predict_paths[merge_predict_index]
+    #             elif dem_item == 'SRTM':
     #                 print('正在执行SRTM部分...')
     #                 # 找到对应的point_path
     #                 for point_files_index, point_files_item in enumerate(srtm_point_files_list):
-    #                     if dem_type in point_files_item and str(
+    #                     if dem_item in point_files_item and str(
     #                             year_item) in point_files_item and f'Bin_{bin_item}' in point_files_item:
-    #                         print(f'当前执行条件为:{dem_type} {year_item} {bin_item}'
+    #                         print(f'当前执行条件为:{dem_item} {year_item} {bin_item}'
     #                               f'已找到文件名为:{point_files_item}')
     #                         point_path = srtm_point_path_list[point_files_index]
     #                         break
     #                     else:
-    #                         print(f'ERROR: 不存在符合条件为:{dem_type} {year_item} {bin_item}的Point Shape文件.')
+    #                         print(f'ERROR: 不存在符合条件为:{dem_item} {year_item} {bin_item}的Point Shape文件.')
+    #                 for dem_productions_index, dem_productions_item in enumerate(srtm_files_list):
+    #                     if 'Reclassify' in dem_productions_item and f'_{bin_item}' in dem_productions_item:
+    #                         print(f'已经找到{dem_item}的Reclassify文件,等级{bin_item}.')
+    #                         raster_reclassify_path = srtm_path_list[dem_productions_index]
+    #                 for merge_predict_index, merge_predict_item in enumerate(merge_predict_files_list):
+    #                     if dem_item in merge_predict_item and str(
+    #                             year_item) in merge_predict_item and f'_{bin_item}' in merge_predict_item:
+    #                         print(f'已经找到{dem_item}的Merge文件,等级{bin_item}.')
+    #                         merge_predict_path = merge_predict_paths[merge_predict_index]
     #             else:
     #                 print('dem_type存在错误，请检查基准DEM的命名。')
     #
-    #             # 生成bin字段
-    #             bin_level = f'Bin_{bin_item}'
+    #             csv_output_path = os.path.join(output_error_csv_folder,
+    #                                            f'ErrorAnalysis_{dem_item}_{year_item}_Bin_{bin_item}')
+    #             AnalysisResult(point_path, merge_predict_path, raster_reclassify_path, f'Bin_{bin_item}', year_item,
+    #                            _output_csv_folder=csv_output_path)
     #
-    #             # 生成输出预测结果的路径
-    #             xgboost_output_path = os.path.join(xgboost_output_folder, f'{dem_type}_{year_item}_{bin_level}')
-    #             if os.path.exists(xgboost_output_path):
-    #                 shutil.rmtree(xgboost_output_path)
-    #                 print('正在删除已存在文件夹')
-    #             os.makedirs(xgboost_output_path)
-    #             print(f'已创建{dem_type}_{year_item}_{bin_level}的输出文件夹.')
+    #             output_mask_path = os.path.join(output_mask_folder, f'Mask_{dem_item}_{year_item}_Bin_{bin_item}')
+    #             MaskRegionAnalysis(rgi_path, merge_predict_path, output_mask_path, raster_reclassify_path,
+    #                                _dem_type=dem_item,
+    #                                _bin_level=f'Bin_{bin_item}', _year=year_item,
+    #                                _output_csv_folder=output_change_csv_folder, _threshold=30)
     #
-    #             # 找到其他DEM输入参数的路径
-    #             raster_slope_path, raster_aspect_path, raster_undulation_path, raster_reclassify_path = None, None, None, None
-    #             raster_projx_path = None
-    #             raster_projy_path = None
-    #             for proj_index, proj_item in enumerate(common_files_list):
-    #                 if 'X' in proj_item:
-    #                     raster_projx_path = common_path_list[proj_index]
-    #                     print(f'已经找到{dem_type}的Proj X文件')
-    #                 elif 'Y' in proj_item:
-    #                     raster_projy_path = common_path_list[proj_index]
-    #                     print(f'已经找到{dem_type}的Proj Y文件')
-    #             if dem_type == 'NASA' or 'nasa':
-    #                 print('正在寻找NASA的相关DEM产品路径...')
-    #                 for dem_productions_index, dem_productions_item in enumerate(nasa_files_list):
-    #                     if 'Slope' in dem_productions_item:
-    #                         print(f'已经找到{dem_type}的Slope文件.')
-    #                         raster_slope_path = nasa_path_list[dem_productions_index]
-    #                     elif 'Aspect' in dem_productions_item:
-    #                         print(f'已经找到{dem_type}的Aspect文件.')
-    #                         raster_aspect_path = nasa_path_list[dem_productions_index]
-    #                     elif 'Undulation' in dem_productions_item:
-    #                         print(f'已经找到{dem_type}的Undulation文件.')
-    #                         raster_undulation_path = nasa_path_list[dem_productions_index]
-    #                     elif 'Reclassify' in dem_productions_item and f'_{bin_item}' in dem_productions_item:
-    #                         print(f'已经找到{dem_type}的Reclassify文件,等级{bin_item}.')
-    #                         raster_reclassify_path = nasa_path_list[dem_productions_index]
-    #             elif dem_type == 'SRTM' or 'srtm':
-    #                 print('正在寻找SRTM的相关DEM产品路径...')
-    #                 for dem_productions_index, dem_productions_item in enumerate(srtm_files_list):
-    #                     if 'Slope' in dem_productions_item:
-    #                         print(f'已经找到{dem_type}的Slope文件.')
-    #                         raster_slope_path = srtm_path_list[dem_productions_index]
-    #                     elif 'Aspect' in dem_productions_item:
-    #                         print(f'已经找到{dem_type}的Aspect文件.')
-    #                         raster_aspect_path = srtm_path_list[dem_productions_index]
-    #                     elif 'Undulation' in dem_productions_item:
-    #                         print(f'已经找到{dem_type}的Undulation文件.')
-    #                         raster_undulation_path = srtm_path_list[dem_productions_index]
-    #                     elif 'Reclassify' in dem_productions_item and f'_{bin_item}' in dem_productions_item:
-    #                         print(f'已经找到{dem_type}的Reclassify文件,等级{bin_item}.')
-    #                         raster_reclassify_path = srtm_path_list[dem_productions_index]
-    #             else:
-    #                 print('dem_type存在错误，请检查基准DEM的命名。')
-    #
-    #             print(f"当前文件路径:\n"
-    #                   f"输出路径:{xgboost_output_path}\n"
-    #                   f"Slope:{raster_slope_path}\n"
-    #                   f"Aspect:{raster_aspect_path}\n"
-    #                   f"Undulation:{raster_undulation_path}\n"
-    #                   f"Reclassify:{raster_reclassify_path}\n"
-    #                   f"ProjX:{raster_projx_path}\n"
-    #                   f"ProjY:{raster_projy_path}\n")
-    #             # 开始执行预测
-    #             IntegrationXGBoostRegression(point_path,
-    #                                          ['Slope', 'Aspect', 'Undulation', 'Proj_X', 'Proj_Y'],
-    #                                          ['Delta_Ele'],
-    #                                          bin_level,
-    #                                          _output_path=xgboost_output_path,
-    #                                          _raster_slope_path=raster_slope_path,
-    #                                          _raster_undulation_path=raster_undulation_path,
-    #                                          _raster_aspect_path=raster_aspect_path,
-    #                                          _raster_reclassify_path=raster_reclassify_path,
-    #                                          _raster_projx_path=raster_projx_path,
-    #                                          _raster_projy_path=raster_projy_path)
     # """
-    # PART 2
+    # PART 4
     # """
-    # # 融合
-    # dem_type_list = ['NASA', 'SRTM']
-    # years_list = [i for i in range(2019, 2023)]
-    # bin_list = [i * 50 for i in range(1, 5)]
-    # merge_output_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\1_PredictData\2_MergeData'
-    # for dem_index, dem_item in enumerate(dem_type_list):
-    #     for year_index, year_item in enumerate(years_list):
-    #         for bin_index, bin_item in enumerate(bin_list):
-    #             predict_folder = os.path.join(xgboost_output_folder, f'{dem_item}_{year_item}_Bin_{bin_item}')
-    #             raster_reclassify_path = None
-    #             if dem_item == 'NASA':
-    #                 print('正在寻找NASA的相关DEM产品路径...')
-    #                 for dem_productions_index, dem_productions_item in enumerate(nasa_files_list):
-    #                     if 'Reclassify' in dem_productions_item and f'_{bin_item}' in dem_productions_item:
-    #                         print(f'已经找到{dem_type}的Reclassify文件,等级{bin_item}.')
-    #                         raster_reclassify_path = nasa_path_list[dem_productions_index]
-    #             elif dem_item == 'SRTM':
-    #                 print('正在寻找SRTM的相关DEM产品路径...')
-    #                 for dem_productions_index, dem_productions_item in enumerate(srtm_files_list):
-    #                     if 'Reclassify' in dem_productions_item and f'_{bin_item}' in dem_productions_item:
-    #                         print(f'已经找到{dem_type}的Reclassify文件,等级{bin_item}.')
-    #                         raster_reclassify_path = srtm_path_list[dem_productions_index]
-    #
-    #             MergeRegressionClassify(predict_folder, raster_reclassify_path, merge_output_folder, _dem_type=dem_item,
-    #                                     _year=year_item)
-    """
-    PART 3
-    """
-    # 分析Point位置的Error
-    merge_output_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\1_PredictData\2_MergeData'
-    csv_output_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\2_CSVData\1_ErrorCSV'
-    output_mask_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\1_PredictData\3_MaskData'
-    output_change_csv_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\2_CSVData\2_ChangeCSV'
-    merge_predict_paths, merge_predict_files_list = PGF.PathGetFiles(merge_output_folder, '.tif')
-    dem_type_list = ['NASA', 'SRTM']
-    years_list = [i for i in range(2019, 2023)]
-    bin_list = [i * 50 for i in range(1, 5)]
-    point_path, merge_predict_path, raster_reclassify_path = None, None, None
-    for dem_index, dem_item in enumerate(dem_type_list):
-        for year_index, year_item in enumerate(years_list):
-            for bin_index, bin_item in enumerate(bin_list):
-                # 寻找Point File Path
-                if dem_item == 'NASA':
-                    print('正在执行NASA部分...')
-                    # 找到对应的point_path
-                    for point_files_index, point_files_item in enumerate(nasa_point_files_list):
-                        if dem_item in point_files_item and str(
-                                year_item) in point_files_item and f'Bin_{bin_item}' in point_files_item:
-                            print(f'当前执行条件为:{dem_item} {year_item} {bin_item}'
-                                  f'已找到文件名为:{point_files_item}')
-                            point_path = nasa_point_path_list[point_files_index]
-                            break
-                        else:
-                            print(f'ERROR: 不存在符合条件为:{dem_item} {year_item} {bin_item}的Point Shape文件.')
-                    for dem_productions_index, dem_productions_item in enumerate(nasa_files_list):
-                        if 'Reclassify' in dem_productions_item and f'_{bin_item}' in dem_productions_item:
-                            print(f'已经找到{dem_item}的Reclassify文件,等级{bin_item}.')
-                            raster_reclassify_path = nasa_path_list[dem_productions_index]
-                    for merge_predict_index, merge_predict_item in enumerate(merge_predict_files_list):
-                        if dem_item in merge_predict_item and str(
-                                year_item) in merge_predict_item and f'_{bin_item}' in merge_predict_item:
-                            print(f'已经找到{dem_item}的Merge文件,等级{bin_item}.')
-                            merge_predict_path = merge_predict_paths[merge_predict_index]
-                elif dem_item == 'SRTM':
-                    print('正在执行SRTM部分...')
-                    # 找到对应的point_path
-                    for point_files_index, point_files_item in enumerate(srtm_point_files_list):
-                        if dem_item in point_files_item and str(
-                                year_item) in point_files_item and f'Bin_{bin_item}' in point_files_item:
-                            print(f'当前执行条件为:{dem_item} {year_item} {bin_item}'
-                                  f'已找到文件名为:{point_files_item}')
-                            point_path = srtm_point_path_list[point_files_index]
-                            break
-                        else:
-                            print(f'ERROR: 不存在符合条件为:{dem_item} {year_item} {bin_item}的Point Shape文件.')
-                    for dem_productions_index, dem_productions_item in enumerate(srtm_files_list):
-                        if 'Reclassify' in dem_productions_item and f'_{bin_item}' in dem_productions_item:
-                            print(f'已经找到{dem_item}的Reclassify文件,等级{bin_item}.')
-                            raster_reclassify_path = srtm_path_list[dem_productions_index]
-                    for merge_predict_index, merge_predict_item in enumerate(merge_predict_files_list):
-                        if dem_item in merge_predict_item and str(
-                                year_item) in merge_predict_item and f'_{bin_item}' in merge_predict_item:
-                            print(f'已经找到{dem_item}的Merge文件,等级{bin_item}.')
-                            merge_predict_path = merge_predict_paths[merge_predict_index]
-                else:
-                    print('dem_type存在错误，请检查基准DEM的命名。')
-
-                csv_output_path = os.path.join(csv_output_folder,
-                                               f'ErrorAnalysis_{dem_item}_{year_item}_Bin_{bin_item}')
-                AnalysisResult(point_path, merge_predict_path, raster_reclassify_path, f'Bin_{bin_item}', year_item,
-                               _output_csv_folder=csv_output_path)
-
-                output_mask_path = os.path.join(output_mask_folder, f'Mask_{dem_item}_{year_item}_Bin_{bin_item}')
-                MaskRegionAnalysis(rgi_path, merge_predict_path, output_mask_path, raster_reclassify_path,
-                                   _dem_type=dem_item,
-                                   _bin_level=f'Bin_{bin_item}', _year=year_item,
-                                   _output_csv_folder=output_change_csv_folder, _threshold=30)
-
-    """
-    PART 4
-    """
