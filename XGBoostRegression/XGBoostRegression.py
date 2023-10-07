@@ -80,7 +80,7 @@ def XGBoostRegression(_x_train, _y_train, _x_validate, _y_validate, _refine_data
     print('XGBOOST开始拟合'.center(20, '-'))
     model = xgb.XGBRegressor(max_depth=6,  # 每一棵树最大深度，默认6；
                              learning_rate=0.1,  # 学习率，每棵树的预测结果都要乘以这个学习率，默认0.3；
-                             n_estimators=600,  # 使用多少棵树来拟合，也可以理解为多少次迭代。默认100；
+                             n_estimators=200,  # 使用多少棵树来拟合，也可以理解为多少次迭代。默认100；
                              objective='reg:squarederror',  # 此默认参数与 XGBClassifier 不同
                              booster='gbtree',
                              # 有两种模型可以选择gbtree和gblinear。gbtree使用基于树的模型进行提升计算，gblinear使用线性模型进行提升计算。默认为gbtree
