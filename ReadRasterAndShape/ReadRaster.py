@@ -9,9 +9,10 @@ import shutil
 from osgeo import gdal, osr
 
 
-def SearchRasterRowColumnData(raster_ds_data, point_row, point_column):
+def SearchRasterRowColumnData(point_row, point_column, raster_ds_data=None, _raster_ds_path=None):
     """
     根据已知的点在栅格上的行列位置，获取栅格上的信息
+    :param _raster_ds_path: raster_ds_data的路径
     :param raster_ds_data:  N行M列的多维矩阵
     :param point_row:   点位的行数组
     :param point_column:    点位的列数组
@@ -20,8 +21,14 @@ def SearchRasterRowColumnData(raster_ds_data, point_row, point_column):
     if len(point_row) != len(point_column):
         print('Error:点位的行列数不等')
     raster_row_column_data = []
-    for i in range(len(point_row)):
-        raster_row_column_data.append(raster_ds_data[point_row[i]][point_column[i]])
+    if _raster_ds_path is not None and raster_ds_data is None:
+        raster_rr = ReadRaster(_raster_ds_path)
+        raster_data = raster_rr.ReadRasterFile()
+        for i in range(len(point_row)):
+            raster_row_column_data.append(raster_data[point_row[i]][point_column[i]])
+    elif _raster_ds_path is None and raster_ds_data is not None:
+        for i in range(len(point_row)):
+            raster_row_column_data.append(raster_ds_data[point_row[i]][point_column[i]])
     return raster_row_column_data
 
 
@@ -94,8 +101,7 @@ class ReadRaster:
         if os.path.exists(_output_path):
             shutil.rmtree(_output_path)
             print('正在删除已存在文件夹')
-        else:
-            os.makedirs(_output_path)
+        os.makedirs(_output_path)
         output_name = os.path.splitext(os.path.split(_output_path)[-1])[0] + '.tif'
         driver = gdal.GetDriverByName('GTIFF')
         write_ds = driver.Create(os.path.join(_output_path, output_name), self.raster_ds_x_size, self.raster_ds_y_size,
