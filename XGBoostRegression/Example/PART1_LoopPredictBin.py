@@ -28,8 +28,10 @@ if __name__ == '__main__':
     common_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\0_BaseData\BaseDEMProductions\CommonData'
     common_path_list, common_files_list = PGF.PathGetFiles(common_folder, '.tif')
     # Point数据
-    nasa_point_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\0_BaseData\BasePoint\NASA'
-    srtm_point_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\0_BaseData\BasePoint\SRTM'
+    # nasa_point_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\0_BaseData\BasePoint\NASA'
+    nasa_point_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231008\0_BaseData\BasePoint\NASA'
+    # srtm_point_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\0_BaseData\BasePoint\SRTM'
+    srtm_point_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231008\0_BaseData\BasePoint\SRTM'
     nasa_point_path_list, nasa_point_files_list = PGF.PathGetFiles(nasa_point_folder, '.shp')
     srtm_point_path_list, srtm_point_files_list = PGF.PathGetFiles(srtm_point_folder, '.shp')
 
@@ -39,13 +41,15 @@ if __name__ == '__main__':
     # 先循环NASA，再循环SRTM
     # 循环年份
     # 循环某一年的bin
-    xgboost_output_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\1_PredictData\1_XGBoostData'
+    # xgboost_output_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\1_PredictData\1_XGBoostData'
+    xgboost_output_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231008\1_PredictData\1_XGBoostData'
     # 循环DEM， 先NASA，再SRTM
     for dem_index, dem_item in enumerate(dem_path_list):
         dem_type = dem_files_list[dem_index].split('_')[0]  # NASA or SRTM
         # dem_type = 'SRTM'
         # 循环年份
-        for year_index, year_item in enumerate([i for i in range(2019, 2023)]):
+        # for year_index, year_item in enumerate([i for i in range(2019, 2023)]):
+        for year_index, year_item in enumerate([2019]):
             # 循环Bin等级
             for bin_index, bin_item in enumerate([i * 50 for i in range(1, 5)]):
                 # 寻找Point File Path
@@ -54,8 +58,8 @@ if __name__ == '__main__':
                     print('正在执行NASA部分...')
                     # 找到对应的point_path
                     for point_files_index, point_files_item in enumerate(nasa_point_files_list):
-                        if dem_type in point_files_item and str(
-                                year_item) in point_files_item and f'Bin_{bin_item}' in point_files_item:
+                        print(point_files_item)
+                        if dem_type in point_files_item and str(year_item) in point_files_item and f'Bin_{bin_item}' in point_files_item:
                             print(f'当前执行条件为:{dem_type} {year_item} {bin_item}'
                                   f'已找到文件名为:{point_files_item}')
                             point_path = nasa_point_path_list[point_files_index]
@@ -134,21 +138,25 @@ if __name__ == '__main__':
 
                 print(f"当前文件路径:\n"
                       f"输出路径:{xgboost_output_path}\n"
+                      f"Point:{point_path}\n"
                       f"Slope:{raster_slope_path}\n"
                       f"Aspect:{raster_aspect_path}\n"
                       f"Undulation:{raster_undulation_path}\n"
                       f"Reclassify:{raster_reclassify_path}\n"
                       f"ProjX:{raster_projx_path}\n"
                       f"ProjY:{raster_projy_path}\n")
-                # 开始执行预测
-                IXGBR.IntegrationXGBoostRegression(point_path,
-                                                   ['Slope', 'Aspect', 'Undulation', 'Proj_X', 'Proj_Y'],
-                                                   ['Delta_Ele'],
-                                                   bin_level,
-                                                   _output_path=xgboost_output_path,
-                                                   _raster_slope_path=raster_slope_path,
-                                                   _raster_undulation_path=raster_undulation_path,
-                                                   _raster_aspect_path=raster_aspect_path,
-                                                   _raster_reclassify_path=raster_reclassify_path,
-                                                   _raster_projx_path=raster_projx_path,
-                                                   _raster_projy_path=raster_projy_path)
+                if point_path is None:
+                    print('Point路径不存在!')
+                else:
+                    # 开始执行预测
+                    IXGBR.IntegrationXGBoostRegression(point_path,
+                                                       ['Slope', 'Aspect', 'Undulation', 'Proj_X', 'Proj_Y'],
+                                                       ['Delta_Ele'],
+                                                       bin_level,
+                                                       _output_path=xgboost_output_path,
+                                                       _raster_slope_path=raster_slope_path,
+                                                       _raster_undulation_path=raster_undulation_path,
+                                                       _raster_aspect_path=raster_aspect_path,
+                                                       _raster_reclassify_path=raster_reclassify_path,
+                                                       _raster_projx_path=raster_projx_path,
+                                                       _raster_projy_path=raster_projy_path)

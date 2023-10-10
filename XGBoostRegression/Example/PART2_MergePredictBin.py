@@ -30,19 +30,24 @@ if __name__ == '__main__':
     common_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\0_BaseData\BaseDEMProductions\CommonData'
     common_path_list, common_files_list = PGF.PathGetFiles(common_folder, '.tif')
     # Point数据
-    nasa_point_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\0_BaseData\BasePoint\NASA'
-    srtm_point_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\0_BaseData\BasePoint\SRTM'
+    # nasa_point_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\0_BaseData\BasePoint\NASA'
+    nasa_point_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231008\0_BaseData\BasePoint\NASA'
+    # srtm_point_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\0_BaseData\BasePoint\SRTM'
+    srtm_point_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231008\0_BaseData\BasePoint\SRTM'
     nasa_point_path_list, nasa_point_files_list = PGF.PathGetFiles(nasa_point_folder, '.shp')
     srtm_point_path_list, srtm_point_files_list = PGF.PathGetFiles(srtm_point_folder, '.shp')
     """
     PART 2
     """
-    xgboost_output_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\1_PredictData\1_XGBoostData'
+    # xgboost_output_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\1_PredictData\1_XGBoostData'
+    xgboost_output_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231008\1_PredictData\1_XGBoostData'
     # 融合
-    dem_type_list = ['NASA', 'SRTM']
-    years_list = [i for i in range(2019, 2023)]
+    dem_type_list = ['NASA','SRTM']
+    # years_list = [i for i in range(2019, 2023)]
+    years_list = [2019]
     bin_list = [i * 50 for i in range(1, 5)]
-    merge_output_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\1_PredictData\2_MergeData'
+    # merge_output_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\1_PredictData'
+    merge_output_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231008\1_PredictData\2_MergeData'
     for dem_index, dem_item in enumerate(dem_type_list):
         for year_index, year_item in enumerate(years_list):
             for bin_index, bin_item in enumerate(bin_list):

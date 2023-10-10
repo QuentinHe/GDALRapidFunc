@@ -30,8 +30,10 @@ if __name__ == '__main__':
     common_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\0_BaseData\BaseDEMProductions\CommonData'
     common_path_list, common_files_list = PGF.PathGetFiles(common_folder, '.tif')
     # Point数据
-    nasa_point_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\0_BaseData\BasePoint\NASA'
-    srtm_point_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\0_BaseData\BasePoint\SRTM'
+    # nasa_point_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\0_BaseData\BasePoint\NASA'
+    nasa_point_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231008\0_BaseData\BasePoint\NASA'
+    # srtm_point_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\0_BaseData\BasePoint\SRTM'
+    srtm_point_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231008\0_BaseData\BasePoint\SRTM'
     nasa_point_path_list, nasa_point_files_list = PGF.PathGetFiles(nasa_point_folder, '.shp')
     srtm_point_path_list, srtm_point_files_list = PGF.PathGetFiles(srtm_point_folder, '.shp')
 
@@ -42,18 +44,22 @@ if __name__ == '__main__':
     PART 3
     """
     # 分析Point位置的Error
-    merge_output_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\1_PredictData\2_MergeData'
-    output_error_csv_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\2_CSVData\1_ErrorCSV'
-    output_mask_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\1_PredictData\3_MaskData'
-    output_change_csv_folder = os.path.join(
-        r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\2_CSVData\2_ChangeCSV\20231007_Threshold30')
+    # merge_output_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\1_PredictData\2_MergeData'
+    merge_output_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231008\1_PredictData\2_MergeData'
+    # output_error_csv_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\2_CSVData\1_ErrorCSV'
+    output_error_csv_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231008\2_CSVData\1_ErrorCSV\20231009_1'
+    # output_mask_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\1_PredictData\3_MaskData'
+    output_mask_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231008\1_PredictData\3_MaskData'
+    # output_change_csv_folder = os.path.join(r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\2_CSVData\2_ChangeCSV\20231007_Threshold30')
+    output_change_csv_folder = os.path.join(r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231008\2_CSVData\2_ChangeCSV\20231009_1')
     if os.path.exists(output_change_csv_folder):
         shutil.rmtree(output_change_csv_folder)
         print('正在删除已存在CSV文件夹路径')
     os.makedirs(output_change_csv_folder)
     merge_predict_paths, merge_predict_files_list = PGF.PathGetFiles(merge_output_folder, '.tif')
     dem_type_list = ['NASA', 'SRTM']
-    years_list = [i for i in range(2019, 2023)]
+    # years_list = [i for i in range(2019, 2023)]
+    years_list = [2019]
     bin_list = [i * 50 for i in range(1, 5)]
     point_path, merge_predict_path, raster_reclassify_path = None, None, None
     for dem_index, dem_item in enumerate(dem_type_list):
@@ -116,4 +122,4 @@ if __name__ == '__main__':
                 IXGBR.MaskRegionAnalysis(rgi_path, merge_predict_path, output_mask_path, raster_reclassify_path,
                                          _dem_type=dem_item,
                                          _bin_level=f'Bin_{bin_item}', _year=year_item,
-                                         _output_csv_folder=output_change_csv_folder, _threshold=30)
+                                         _output_csv_folder=output_change_csv_folder)
