@@ -14,7 +14,7 @@ import PathOperation.PathGetFiles as PGF
 import ErrorAnalysis.ErrorAnalysis as EA
 import ReadRasterAndShape.ReadShape2DataFrame as RSDF
 import ReadRasterAndShape.ReadRaster as RR
-import XGBoostRegression as XGBR
+import XGBoostRegression.PredefineXGBoostRegression as PXGBR
 import RasterAnalysis.RasterShapeMaskRaster as RSMR
 
 os.environ['PROJ_LIB'] = 'D:/Mambaforge/envs/mgdal_env/Library/share/proj'
@@ -117,7 +117,7 @@ def IntegrationXGBoostRegression(_shape_path, _x_var, _y_var, _bin_level,
         x_df = temp_df[_x_var]
         y_df = temp_df[_y_var]
         x_train, x_test, y_train, y_test, = model_selection.train_test_split(x_df, y_df, train_size=0.7)
-        _predict_data = XGBR.XGBoostRegression(x_train, y_train, x_test, y_test, predict_df)
+        _predict_data = PXGBR.XGBoostRegression(x_train, y_train, x_test, y_test, predict_df)
         output_predict_data = np.array(_predict_data).reshape(reclassify_rr.raster_ds_y_size,
                                                               reclassify_rr.raster_ds_x_size)
         output_path = os.path.join(_output_path, f'{_bin_level}_{i}')
@@ -313,10 +313,17 @@ def MaskRegionAnalysis(_input_shape_path, _input_raster_path, _output_raster_fol
 
 
 def MeanBinsRaster(_raster_folder, _output_path):
+    """
+    将多个栅格计算平均值，并输出
+    :param _raster_folder: 栅格文件夹
+    :param _output_path: 输出栅格的路径
+    :return:
+    """
     raster_paths_list, raster_files_list = PGF.PathGetFiles(_raster_folder, '.tif')
     raster_means_list = []
     dem_list = ['NASA', 'SRTM']
-    years_list = [i for i in range(2019, 2023)]
+    # years_list = [i for i in range(2019, 2023)]
+    years_list = [2019]
     for dem_index, dem_item in enumerate(dem_list):
         for years_index, years_item in enumerate(years_list):
             for files_index, files_item in enumerate(raster_files_list):
@@ -338,6 +345,182 @@ def MeanBinsRaster(_raster_folder, _output_path):
             mean_data = mean_data / len(raster_means_list)
             output_path = os.path.join(_output_path, f'{dem_item}_{years_item}')
             example_rr.WriteRasterFile(mean_data, output_path, _nodata=0)
+            del example_rr
+    return None
+
+
+def YearChangeAnalysis(_raster_folder, _reclassify_path, _output_raster_folder, _output_csv_folder, _threshold=50,
+                       _mode=None):
+    raster_paths_list, raster_files_list = PGF.PathGetFiles(_raster_folder, '.tif')
+    dem_list = ['NASA', 'SRTM']
+    # years_list = [i for i in range(2019, 2023)]
+    years_list = [2019]
+    reclassify_rr = RR.ReadRaster(_reclassify_path)
+    reclassify_data = reclassify_rr.ReadRasterFile()
+    for dem_index, dem_item in enumerate(dem_list):
+        year_dh_path_list = []
+        csv_dict = dict()
+        total_means = []
+        for years_index, years_item in enumerate(years_list):
+            for files_index, files_item in enumerate(raster_files_list):
+                if dem_item in files_item and str(years_item) in files_item:
+                    print(f'已找到{files_item}的Raster文件Path:{raster_paths_list[files_index]}')
+                    year_dh_path_list.append(raster_paths_list[files_index])
+        result_data = np.zeros(reclassify_data.shape)
+        for index, item in enumerate(year_dh_path_list):
+            raster_rr = RR.ReadRaster(item)
+            raster_data = raster_rr.ReadRasterFile()
+            # 声明分级字典，用于储存年变化量
+            bins_dict = dict()
+            for i in range(int(np.min(reclassify_data)), int(np.max(reclassify_data) + 1)):
+                bins_dict[i] = []
+            # 年变化之间做差
+            if index == 0:
+                result_data += raster_data
+                for y in range(reclassify_rr.raster_ds_y_size):
+                    for x in range(reclassify_rr.raster_ds_x_size):
+                        if np.abs(result_data[y][x]) <= _threshold:
+                            bins_dict[int(reclassify_data[y][x])].append(result_data[y][x])
+                bin_mean = []
+                for i in bins_dict:
+                    bin_mean.append(np.mean(bins_dict[i]) / (years_list[index] - 2000))
+                bin_means_nonan = [i for i in bin_mean if np.isnan(i) == False and i != 0]
+                csv_dict[years_list[index]] = bin_means_nonan
+                total_means.append(np.mean(bin_means_nonan))
+                if _mode is not None:
+                    output_raster_path = os.path.join(_output_raster_folder,
+                                                      f"{_mode}_{dem_item}_{years_list[index]}_2000")
+                else:
+                    output_raster_path = os.path.join(_output_raster_folder, f"{dem_item}_{years_list[index]}_2000")
+                reclassify_rr.WriteRasterFile(result_data / (years_list[index] - 2000), output_raster_path, _nodata=0)
+            elif index != 0:
+                if _mode is None:
+                    discrepancy_data = raster_data - result_data
+                else:
+                    discrepancy_data = raster_data / (years_list[index] - 2000)
+                # 按照分级将做差后的数据添加到Bin Dict中
+                for y in range(reclassify_rr.raster_ds_y_size):
+                    for x in range(reclassify_rr.raster_ds_x_size):
+                        if np.abs(result_data[y][x]) <= _threshold:
+                            bins_dict[int(reclassify_data[y][x])].append(discrepancy_data[y][x])
+                if _mode is not None:
+                    output_raster_path = os.path.join(_output_raster_folder,
+                                                      f"{_mode}_{dem_item}_{years_list[index]}_{years_list[index - 1]}")
+                else:
+                    output_raster_path = os.path.join(_output_raster_folder,
+                                                      f"{dem_item}_{years_list[index]}_{years_list[index - 1]}")
+                raster_rr.WriteRasterFile(discrepancy_data, output_raster_path, _nodata=0)
+                del raster_rr
+                bin_mean = []
+                bin_std = []
+                for i in bins_dict:
+                    bin_mean.append(np.mean(bins_dict[i]))
+                    bin_std.append(np.std(bins_dict[i]))
+                bin_means_nonan = [i for i in bin_mean if np.isnan(i) == False and i != 0]
+                bin_stds_nonan = [i for i in bin_std if np.isnan(i) == False and i != 0]
+                csv_dict[years_list[index]] = bin_means_nonan
+                total_means.append(np.mean(bin_means_nonan))
+        csv_df = pd.DataFrame(csv_dict)
+        csv_df.loc[len(csv_df.index)] = total_means
+        times = time.strftime('%Y_%m_%d_%H%M%S', time.localtime())
+        if _mode is None:
+            _output_csv_path = os.path.join(_output_csv_folder, f'{dem_item}_th{_threshold}_{times}.csv')
+        else:
+            _output_csv_path = os.path.join(_output_csv_folder, f'{_mode}_{dem_item}_th{_threshold}_{times}.csv')
+        csv_df.to_csv(_output_csv_path)
+    del reclassify_rr
+    return None
+
+
+def SeasonalChangeAnalysis(_raster_path_list, _reclassify_path, _output_csv_folder, _output_csv_name, _threshold=50):
+    reclassify_rr = RR.ReadRaster(_reclassify_path)
+    reclassify_data = reclassify_rr.ReadRasterFile()
+    csv_dict = dict()
+    total_means = []
+    for raster_path_index,  raster_path_item in enumerate(_raster_path_list):
+        bins_dict = dict()
+        for i in range(int(np.min(reclassify_data)), int(np.max(reclassify_data) + 1)):
+            bins_dict[i] = []
+        raster_rr = RR.ReadRaster(raster_path_item)
+        raster_data = raster_rr.ReadRasterFile()
+        for y in range(reclassify_rr.raster_ds_y_size):
+            for x in range(reclassify_rr.raster_ds_x_size):
+                if np.abs(raster_data[y][x]) <= _threshold:
+                    bins_dict[int(reclassify_data[y][x])].append(raster_data[y][x])
+        bin_mean = []
+        bin_std = []
+        for i in bins_dict:
+            bin_mean.append(np.mean(bins_dict[i]))
+            bin_std.append(np.std(bins_dict[i]))
+        bin_means_nonan = [i for i in bin_mean if np.isnan(i) == False and i != 0]
+        csv_dict_name = os.path.splitext(os.path.split(raster_path_item)[1])[0]
+        csv_dict[f'{csv_dict_name}_Means'] = bin_means_nonan
+        total_means.append(np.mean(bin_means_nonan))
+    csv_df = pd.DataFrame(csv_dict)
+    csv_df.loc[len(csv_df.index)] = total_means
+    times = time.strftime('%Y_%m_%d_%H%M%S', time.localtime())
+    output_csv_path = os.path.join(_output_csv_folder, f'{_output_csv_name}.csv')
+    csv_df.to_csv(output_csv_path)
+    return None
+
+
+def ElevationUncertaintyAnalysis(_raster_folder, _raster_reclassify_path, _output_csv_folder):
+    # 这里不再做差，就除以年份
+    raster_paths_list, raster_files_list = PGF.PathGetFiles(_raster_folder, '.tif')
+    dem_list = ['NASA', 'SRTM']
+    # years_list = [i for i in range(2019, 2023)]
+    years_list = [2019]
+    reclassify_rr = RR.ReadRaster(_raster_reclassify_path)
+    reclassify_data = reclassify_rr.ReadRasterFile()
+    # 循环读取不同年份的数据
+    for dem_index, dem_item in enumerate(dem_list):
+        df = pd.DataFrame()
+        for year_index, year_item in enumerate(years_list):
+            for file_index, file_item in enumerate(raster_files_list):
+                if dem_item in file_item and str(year_item) in file_item:
+                    print(f'已找到{file_item}的Raster文件Path:{raster_paths_list[file_index]}')
+                    file_path = raster_paths_list[file_index]
+                    # 读取DH数据
+                    raster_rr = RR.ReadRaster(file_path)
+                    raster_data = raster_rr.ReadRasterFile()
+                    # 按照reclassify划分data分级
+                    bins_dict = dict()
+                    for i in range(int(np.min(reclassify_data)), int(np.max(reclassify_data) + 1)):
+                        bins_dict[i] = []
+                    for y in range(reclassify_rr.raster_ds_y_size):
+                        for x in range(reclassify_rr.raster_ds_x_size):
+                            bins_dict[int(reclassify_data[y][x])].append(raster_data[y][x])
+                    # 开始统计分析
+                    # 计算标准差
+                    bins_means = []
+                    bins_stds = []
+                    bins_3stds = []
+                    bins_ce = []
+                    bins_filter3stds_means = []
+                    for i in bins_dict:
+                        bins_means.append(np.mean(bins_dict[i]))
+                        std = np.std(bins_dict[i])
+                        bins_stds.append(std)
+                        bins_3stds.append(std * 3)
+                        bins_ce.append(np.sqrt(np.power(np.std(bins_dict[i]), 2) + np.power(20, 2)))
+                        temp_list = []
+                        for j in bins_dict[i]:
+                            if np.abs(j) < std * 3:
+                                temp_list.append(j)
+                        bins_filter3stds_means.append(np.mean(temp_list))
+                    csv_dict = {
+                        'Bins': [i for i in range(int(np.min(reclassify_data)), int(np.max(reclassify_data) + 1))],
+                        f'{year_item}_means': bins_means,
+                        f'{year_item}_stds': bins_stds,
+                        f'{year_item}_3stds': bins_3stds,
+                        f'{year_item}_ce': bins_ce,
+                        f'{year_item}_filter3stds_means': bins_filter3stds_means,
+                    }
+                    csv_df = pd.DataFrame(csv_dict)
+                    df = pd.concat([df, csv_df], axis=1)
+        times = time.strftime('%Y_%m_%d_%H%M%S', time.localtime())
+        output_path = os.path.join(_output_csv_folder, f'{dem_item}_UncertaintyAnalysis_{times}.csv')
+        df.to_csv(output_path)
     return None
 
 
