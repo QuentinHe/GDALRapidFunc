@@ -12,8 +12,9 @@ import os
 from sklearn import model_selection
 import PathOperation.PathGetFiles as PGF
 import ErrorAnalysis.ErrorAnalysis as EA
-import ReadRasterAndShape.ReadShape2DataFrame as RSDF
+import ReadRasterAndShape.ReadPoint2DataFrame as RSDF
 import ReadRasterAndShape.ReadRaster as RR
+import PathOperation.PathFilesOperation as PFO
 import XGBoostRegression.PredefineXGBoostRegression as PXGBR
 import RasterAnalysis.RasterShapeMaskRaster as RSMR
 
@@ -117,10 +118,15 @@ def IntegrationXGBoostRegression(_shape_path, _x_var, _y_var, _bin_level,
         x_df = temp_df[_x_var]
         y_df = temp_df[_y_var]
         x_train, x_test, y_train, y_test, = model_selection.train_test_split(x_df, y_df, train_size=0.7)
-        _predict_data = PXGBR.XGBoostRegression(x_train, y_train, x_test, y_test, predict_df)
+        output_path = os.path.join(_output_path, f'{_bin_level}_{i}')
+        output_name = _output_path.rsplit('\\', 1)[1] + f'{_bin_level}_{i}'
+        output_csv_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_Final_20231018\0_BaseData\3_CSV\2_Intra\1_XGBoostCSV'
+        output_csv_path = os.path.join(output_csv_folder, output_name)
+        PFO.MakeFolder(output_csv_path)
+        _predict_data = PXGBR.XGBoostRegression(x_train, y_train, x_test, y_test, predict_df,
+                                                _csv_output_path=output_csv_path)
         output_predict_data = np.array(_predict_data).reshape(reclassify_rr.raster_ds_y_size,
                                                               reclassify_rr.raster_ds_x_size)
-        output_path = os.path.join(_output_path, f'{_bin_level}_{i}')
         reclassify_rr.WriteRasterFile(output_predict_data, output_path)
     return None
 
@@ -161,8 +167,9 @@ def MergeRegressionClassify(_predict_folder_path, _raster_reclassify_path, _outp
     return merge_data
 
 
-def AnalysisResult(_shape_path, _raster_predict_path, _raster_reclassify_path, _bin_level, _year, _dem_type,
-                   _output_csv_folder=None):
+def AnalysisResult(_shape_path: object, _raster_predict_path: object, _raster_reclassify_path: object,
+                   _bin_level: object, _year: object, _dem_type: object,
+                   _output_csv_folder: object = None) -> object:
     """
     该函数是针对点结果进行统计分析，包括分析MAE RMSE STD等信息，最后输出成一个csv表格，CSV可以记录年份和Bin Lv但是无法记录DEM。
     :param _dem_type:
@@ -352,8 +359,7 @@ def MeanBinsRaster(_raster_folder, _output_path):
 def YearChangeAnalysis(_raster_folder, _reclassify_path, _output_raster_folder, _output_csv_folder, _threshold=50,
                        _mode=None):
     raster_paths_list, raster_files_list = PGF.PathGetFiles(_raster_folder, '.tif')
-    dem_list = ['NASA', 'SRTM']
-    # years_list = [i for i in range(2019, 2023)]
+    dem_list = ['SRTM']
     years_list = [2019]
     reclassify_rr = RR.ReadRaster(_reclassify_path)
     reclassify_data = reclassify_rr.ReadRasterFile()
@@ -437,7 +443,7 @@ def SeasonalChangeAnalysis(_raster_path_list, _reclassify_path, _output_csv_fold
     reclassify_data = reclassify_rr.ReadRasterFile()
     csv_dict = dict()
     total_means = []
-    for raster_path_index,  raster_path_item in enumerate(_raster_path_list):
+    for raster_path_index, raster_path_item in enumerate(_raster_path_list):
         bins_dict = dict()
         for i in range(int(np.min(reclassify_data)), int(np.max(reclassify_data) + 1)):
             bins_dict[i] = []
@@ -464,65 +470,63 @@ def SeasonalChangeAnalysis(_raster_path_list, _reclassify_path, _output_csv_fold
     return None
 
 
-def ElevationUncertaintyAnalysis(_raster_folder, _raster_reclassify_path, _output_csv_folder):
+def ElevationUncertaintyAnalysis(_raster_folder: object, _raster_reclassify_path: object,
+                                 _output_csv_folder: object) -> object:
     # 这里不再做差，就除以年份
     raster_paths_list, raster_files_list = PGF.PathGetFiles(_raster_folder, '.tif')
-    dem_list = ['NASA', 'SRTM']
-    # years_list = [i for i in range(2019, 2023)]
-    years_list = [2019]
+    dem_list = ['SRTM']
     reclassify_rr = RR.ReadRaster(_raster_reclassify_path)
     reclassify_data = reclassify_rr.ReadRasterFile()
     # 循环读取不同年份的数据
     for dem_index, dem_item in enumerate(dem_list):
         df = pd.DataFrame()
-        for year_index, year_item in enumerate(years_list):
-            for file_index, file_item in enumerate(raster_files_list):
-                if dem_item in file_item and str(year_item) in file_item:
-                    print(f'已找到{file_item}的Raster文件Path:{raster_paths_list[file_index]}')
-                    file_path = raster_paths_list[file_index]
-                    # 读取DH数据
-                    raster_rr = RR.ReadRaster(file_path)
-                    raster_data = raster_rr.ReadRasterFile()
-                    # 按照reclassify划分data分级
-                    bins_dict = dict()
-                    for i in range(int(np.min(reclassify_data)), int(np.max(reclassify_data) + 1)):
-                        bins_dict[i] = []
-                    for y in range(reclassify_rr.raster_ds_y_size):
-                        for x in range(reclassify_rr.raster_ds_x_size):
-                            bins_dict[int(reclassify_data[y][x])].append(raster_data[y][x])
-                    # 开始统计分析
-                    # 计算标准差
-                    bins_means = []
-                    bins_stds = []
-                    bins_3stds = []
-                    bins_ce = []
-                    bins_filter3stds_means = []
-                    for i in bins_dict:
-                        bins_means.append(np.mean(bins_dict[i]))
-                        std = np.std(bins_dict[i])
-                        bins_stds.append(std)
-                        bins_3stds.append(std * 3)
-                        bins_ce.append(np.sqrt(np.power(np.std(bins_dict[i]), 2) + np.power(20, 2)))
-                        temp_list = []
-                        for j in bins_dict[i]:
-                            if np.abs(j) < std * 3:
-                                temp_list.append(j)
-                        bins_filter3stds_means.append(np.mean(temp_list))
-                    csv_dict = {
-                        'Bins': [i for i in range(int(np.min(reclassify_data)), int(np.max(reclassify_data) + 1))],
-                        f'{year_item}_means': bins_means,
-                        f'{year_item}_stds': bins_stds,
-                        f'{year_item}_3stds': bins_3stds,
-                        f'{year_item}_ce': bins_ce,
-                        f'{year_item}_filter3stds_means': bins_filter3stds_means,
-                    }
-                    csv_df = pd.DataFrame(csv_dict)
-                    df = pd.concat([df, csv_df], axis=1)
+        for file_index, file_item in enumerate(raster_files_list):
+            if dem_item in file_item:
+                print(f'已找到{file_item}的Raster文件Path:{raster_paths_list[file_index]}')
+                file_path = raster_paths_list[file_index]
+                # 读取DH数据
+                raster_rr = RR.ReadRaster(file_path)
+                raster_data = raster_rr.ReadRasterFile()
+                # 按照reclassify划分data分级
+                bins_dict = dict()
+                for i in range(int(np.min(reclassify_data)), int(np.max(reclassify_data) + 1)):
+                    bins_dict[i] = []
+                for y in range(reclassify_rr.raster_ds_y_size):
+                    for x in range(reclassify_rr.raster_ds_x_size):
+                        bins_dict[int(reclassify_data[y][x])].append(raster_data[y][x])
+                # 开始统计分析
+                # 计算标准差
+                bins_means = []
+                bins_stds = []
+                bins_3stds = []
+                bins_ce = []
+                bins_filter3stds_means = []
+                for i in bins_dict:
+                    bins_means.append(np.mean(bins_dict[i]))
+                    std = np.std(bins_dict[i])
+                    bins_stds.append(std)
+                    bins_3stds.append(std * 3)
+                    bins_ce.append(np.sqrt(np.power(np.std(bins_dict[i]), 2) + np.power(20, 2)))
+                    temp_list = []
+                    for j in bins_dict[i]:
+                        if np.abs(j) < std * 3:
+                            temp_list.append(j)
+                    bins_filter3stds_means.append(np.mean(temp_list))
+                year_item = 2019
+                csv_dict = {
+                    'Bins': [i for i in range(int(np.min(reclassify_data)), int(np.max(reclassify_data) + 1))],
+                    f'{year_item}_means': bins_means,
+                    f'{year_item}_stds': bins_stds,
+                    f'{year_item}_3stds': bins_3stds,
+                    f'{year_item}_ce': bins_ce,
+                    f'{year_item}_filter3stds_means': bins_filter3stds_means,
+                }
+                csv_df = pd.DataFrame(csv_dict)
+                df = pd.concat([df, csv_df], axis=1)
         times = time.strftime('%Y_%m_%d_%H%M%S', time.localtime())
         output_path = os.path.join(_output_csv_folder, f'{dem_item}_UncertaintyAnalysis_{times}.csv')
         df.to_csv(output_path)
     return None
-
 
 if __name__ == '__main__':
     # shape_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20230916\1_FilterOutliers\1_FilterOutliers\NASA_2019_Bin_50\NASA_2019_Bin_50.shp'
@@ -532,7 +536,7 @@ if __name__ == '__main__':
     #                              ['Slope', 'Aspect', 'Undulation', 'Proj_X', 'Proj_Y'],
     #                              ['Delta_Ele'],
     #                              'Bin_50',
-    #                              _output_path=r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231003\Predict',
+    #                              _output_folder=r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231003\Predict',
     #                              _raster_slope_path=r"E:\Glacier_DEM_Register\Tanggula_FourYear_Data\DEM_Process\1_DEM_Aspect\NASA_Aspect_Level\NASA_Aspect_Level.tif",
     #                              _raster_undulation_path=r"E:\Glacier_DEM_Register\Tanggula_FourYear_Data\DEM_Process\3_DEM_Undulation\NASA\3_NASA_Undulation.tif",
     #                              _raster_aspect_path=r"E:\Glacier_DEM_Register\Tanggula_FourYear_Data\DEM_Process\1_DEM_Aspect\NASA_DEM\1_NASA_Aspect.tif",
@@ -564,21 +568,21 @@ if __name__ == '__main__':
     # rgi_path = r"E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\0_BaseData\BaseRGIRegion\3_Landsat8_RGI_2020.shp"
     # # 基准DEM
     # dem_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\0_BaseData\BaseDEM'
-    # dem_path_list, dem_files_list = PGF.PathGetFiles(dem_folder, '.tif')
+    # dem_path_list, dem_files_list = PGFiles.PathGetFiles(dem_folder, '.tif')
     # # NASA数据
     # nasa_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\0_BaseData\BaseDEMProductions\NASA'
-    # nasa_path_list, nasa_files_list = PGF.PathGetFiles(nasa_folder, '.tif')
+    # nasa_path_list, nasa_files_list = PGFiles.PathGetFiles(nasa_folder, '.tif')
     # # SRTM数据
     # srtm_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\0_BaseData\BaseDEMProductions\SRTM'
-    # srtm_path_list, srtm_files_list = PGF.PathGetFiles(srtm_folder, '.tif')
+    # srtm_path_list, srtm_files_list = PGFiles.PathGetFiles(srtm_folder, '.tif')
     # # 公共数据
     # common_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\0_BaseData\BaseDEMProductions\CommonData'
-    # common_path_list, common_files_list = PGF.PathGetFiles(common_folder, '.tif')
+    # common_path_list, common_files_list = PGFiles.PathGetFiles(common_folder, '.tif')
     # # Point数据
     # nasa_point_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\0_BaseData\BasePoint\NASA'
     # srtm_point_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\0_BaseData\BasePoint\SRTM'
-    # nasa_point_path_list, nasa_point_files_list = PGF.PathGetFiles(nasa_point_folder, '.shp')
-    # srtm_point_path_list, srtm_point_files_list = PGF.PathGetFiles(srtm_point_folder, '.shp')
+    # nasa_point_path_list, nasa_point_files_list = PGFiles.PathGetFiles(nasa_point_folder, '.shp')
+    # srtm_point_path_list, srtm_point_files_list = PGFiles.PathGetFiles(srtm_point_folder, '.shp')
     #
     # # """
     # # PART 1
@@ -692,7 +696,7 @@ if __name__ == '__main__':
     # #                                          ['Slope', 'Aspect', 'Undulation', 'Proj_X', 'Proj_Y'],
     # #                                          ['Delta_Ele'],
     # #                                          bin_level,
-    # #                                          _output_path=xgboost_output_path,
+    # #                                          _output_folder=xgboost_output_path,
     # #                                          _raster_slope_path=raster_slope_path,
     # #                                          _raster_undulation_path=raster_undulation_path,
     # #                                          _raster_aspect_path=raster_aspect_path,
@@ -735,7 +739,7 @@ if __name__ == '__main__':
     # output_error_csv_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\2_CSVData\1_ErrorCSV'
     # output_mask_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\1_PredictData\3_MaskData'
     # output_change_csv_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\2_CSVData\2_ChangeCSV'
-    # merge_predict_paths, merge_predict_files_list = PGF.PathGetFiles(merge_output_folder, '.tif')
+    # merge_predict_paths, merge_predict_files_list = PGFiles.PathGetFiles(merge_output_folder, '.tif')
     # dem_type_list = ['NASA', 'SRTM']
     # years_list = [i for i in range(2019, 2023)]
     # bin_list = [i * 50 for i in range(1, 5)]

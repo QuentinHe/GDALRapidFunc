@@ -8,8 +8,8 @@ import pandas as pd
 from osgeo import gdal, ogr, osr
 import os
 import PathOperation.PathGetFiles as PGFile
-import PathOperation.PathGetFolder as PGFolder
-import ReadRasterAndShape.ReadShape2DataFrame as RSDF
+import PathOperation.PathGetFolders as PGFolder
+import ReadRasterAndShape.ReadPoint2DataFrame as RSDF
 
 os.environ['PROJ_LIB'] = 'D:/Mambaforge/envs/mgdal_env/Library/share/proj'
 os.environ['GDAL_DATA'] = 'D:/Mambaforge/envs/mgdal_env/Library/share'
@@ -42,6 +42,21 @@ def ShapePointCountStatisticByLayer(_shape_point_path):
     feature_num = layer.GetFeatureCount(0)
     del ds
     return feature_num
+
+
+def ShapeFieldClassifyCountStatistic(_shape_path, _classify_field):
+    """
+    根据分类字段统计各类中要素数量
+    :param _shape_path: shape文件路径
+    :param _classify_field: 分类字段
+    :return: 等级字段数量列表
+    """
+    point_rsdf = RSDF.ReadPoint2DataFrame(_shape_path)
+    point_df = point_rsdf.ReadShapeFile()
+    level_list = [0 for i in range(int(np.max(point_df[_classify_field])))]
+    for _i in point_df[_classify_field]:
+        level_list[int(_i) - 1] += 1
+    return level_list
 
 
 if __name__ == '__main__':

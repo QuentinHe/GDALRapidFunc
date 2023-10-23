@@ -52,8 +52,10 @@ if __name__ == '__main__':
     # input_shape_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\0_Landsat8\3_Landsat8_RGI_FourYear\3_Landsat8_RGI_2020.shp'
     # input_raster_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Predict_Result\TESTA\1_Reduce\NASA_2022\NASA_2022.tif'
     # output_raster_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Predict_Result\TESTA\2_MASK\NASA_2022_Bin50'
-    input_shape_path = r"E:\Glacier_DEM_Register\Tanggula_FourYear_Data\0_Landsat8\3_Landsat8_RGI_FourYear\3_Landsat8_RGI_2020.shp"
-    input_raster_path = r"E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231003\Merge_PredictResult_Bin_50\Merge_PredictResult_Bin_50.tif"
-    output_raster_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231003\3_Mask_PredictResult\2019_Bin_50'
+    # input_shape_path = r"E:\Glacier_DEM_Register\Tanggula_FourYear_Data\0_Landsat8\3_Landsat8_RGI_FourYear\3_Landsat8_RGI_2020.shp"
+    input_shape_path = r"E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_Final_20231018\0_BaseData\0_BaseRegion\1_GlaciersRegion\2_GlaciersRegion.shp"
+    input_raster_path = r"E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_Final_20231018\0_BaseData\2_PredictData\1_Inter\2_MergeData\MergePredictResult_NASA_2019_Bin_50\MergePredictResult_NASA_2019_Bin_50.tif"
+    # output_raster_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231003\3_Mask_PredictResult\2019_Bin_50'
+    output_raster_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_Final_20231018\0_BaseData\0_BaseRegion\1_GlaciersRegion\TEST'
     RasterShapeMaskRaster(input_shape_path, input_raster_path, output_raster_path)
 

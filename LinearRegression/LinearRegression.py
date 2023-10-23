@@ -10,7 +10,7 @@ from osgeo import gdal, ogr, osr
 from sklearn import datasets
 import seaborn as sns
 import matplotlib.pyplot as plt
-import ReadRasterAndShape.ReadShape2DataFrame as RSDF
+import ReadRasterAndShape.ReadPoint2DataFrame as RSDF
 from sklearn import model_selection
 from sklearn.linear_model import LinearRegression
 import os

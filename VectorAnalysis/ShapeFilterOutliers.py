@@ -6,11 +6,11 @@
 import shutil
 
 import numpy as np
-import pandas as pd
 from osgeo import gdal, ogr, osr
 import os
 import DataAnalysis.Drawing as Drawing
-import ReadRasterAndShape.ReadShape2DataFrame as RSDF
+import ReadRasterAndShape.ReadPoint2DataFrame as RSDF
+import PathOperation.PathGetFiles as PGFiles
 
 os.environ['PROJ_LIB'] = 'D:/Mambaforge/envs/mgdal_env/Library/share/proj'
 os.environ['GDAL_DATA'] = 'D:/Mambaforge/envs/mgdal_env/Library/share'
@@ -91,8 +91,8 @@ if __name__ == '__main__':
     # input_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20230916\1_FilterOutliers\0_AddReduceElevation\SRTM_2019\SRTM_2019.shp'
     # output_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20230916\1_FilterOutliers\1_FilterOutliers\SRTM_2019_Bin50'
     # ShapeFilterOutliers(input_path, output_path, 'Bin_50', 'Delta_Ele')
-    input_folder_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20230916\1_FilterOutliers\0_AddReduceElevation'
-    output_folder_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20230916\1_FilterOutliers\1_FilterOutliers'
+    input_folder_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_Final_20231018\0_BaseData\1_PointData\9_AddDelta_EleField'
+    output_folder_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_Final_20231018\0_BaseData\1_PointData\10_FilterOutliersData'
     # 遍历指定文件夹获取所有shp文件
     shp_path_list = []
     shp_files_path_list = []

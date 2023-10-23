@@ -13,8 +13,8 @@ os.environ['PROJ_LIB'] = 'D:/Mambaforge/envs/mgdal_env/Library/share/proj'
 os.environ['GDAL_DATA'] = 'D:/Mambaforge/envs/mgdal_env/Library/share'
 
 if __name__ == '__main__':
-    raster_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231008\1_PredictData\4_MeanData\20231009_1'
-    # raster_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\1_PredictData\6_20231008\TEST'
-    reclassify_path = r"E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231008\1_PredictData\3_MaskData\Mask_NASA_2019_Bin_50\Reclassify\Reclassify.tif"
-    output_csv_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231008\2_CSVData\4_UncertaintyCSV'
+    raster_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_Final_20231018\0_BaseData\2_PredictData\1_Inter\4_MeanData'
+    # reclassify_path = r"E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_Final_20231018\0_BaseData\2_PredictData\1_Inter\3_MaskData\Mask_NASA_2019_Bin_50\Reclassify\Reclassify.tif"
+    reclassify_path = r"E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_Final_20231018\0_BaseData\2_PredictData\1_Inter\3_MaskData\Mask_SRTM_2019_Bin_50\Reclassify\Reclassify.tif"
+    output_csv_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_Final_20231018\0_BaseData\3_CSV\1_Inter\5_UncertaintyCSV'
     IXGBR.ElevationUncertaintyAnalysis(raster_folder, reclassify_path, output_csv_folder)

@@ -10,8 +10,8 @@ import numpy as np
 import pandas as pd
 from osgeo import gdal, ogr, osr
 import os
-import ReadRasterAndShape.ReadShape2DataFrame as RSDF
-import PathOperation.PathGetFiles as PGF
+import ReadRasterAndShape.ReadPoint2DataFrame as RSDF
+import PathOperation.PathGetFiles as PGFiles
 
 os.environ['PROJ_LIB'] = 'D:/Mambaforge/envs/mgdal_env/Library/share/proj'
 os.environ['GDAL_DATA'] = 'D:/Mambaforge/envs/mgdal_env/Library/share'
@@ -102,43 +102,65 @@ def ShapeMergePoint(_point_path_1, _output_folder, _output_file_name, *other_poi
 
 
 if __name__ == '__main__':
-    # point_path_1 = r"E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231009\0_BasePoint\NASA_2019_Bin_50\NASA_2019_Bin_50_month1\NASA_2019_Bin_50_month1.shp"
-    # point_path_2 = r"E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231009\0_BasePoint\NASA_2019_Bin_50\NASA_2019_Bin_50_month2\NASA_2019_Bin_50_month2.shp"
-    # point_path_3 = r"E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231009\0_BasePoint\NASA_2019_Bin_50\NASA_2019_Bin_50_month3\NASA_2019_Bin_50_month3.shp"
-    output_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231009\1_BasePoint_Merge'
-    shape_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231009\0_BasePoint'
-    # output_name = 'NASA_2019_Bin_50_Season1'
-    shape_paths_list, shape_files_list = PGF.PathGetFiles(shape_folder, '.shp')
+    shape_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_Final_20231018\0_BaseData\1_PointData\12_SeasonalPoint'
+    output_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_Final_20231018\0_BaseData\1_PointData\13_MergeSeasonalPoint'
+    shape_paths_list, shape_files_list = PGFiles.PathGetFiles(shape_folder, '.shp')
     dem_list = ['NASA', 'SRTM']
-    years_list = [2019]
     bins_list = [i * 50 for i in range(1, 5)]
     for dem_index, dem_item in enumerate(dem_list):
-        for year_index, year_item in enumerate(years_list):
-            for bin_index, bin_item in enumerate(bins_list):
-                # 先得到一年的文件
-                files_year_list = []
-                for file_index, file_item in enumerate(shape_files_list):
-                    if dem_item in file_item and str(year_item) in file_item and f'Bin_{bin_item}' in file_item:
-                        files_year_list.append(shape_paths_list[file_index])
-                # 对一年的文件按照三个月进行分组
-                # 回归日期91天，过境日期为1月后推
-                months_list = [i + 2 for i in range(1, 13, 3)]
-                months_path_dict = dict()
-                for month_item in months_list:
-                    months_path_dict[month_item] = []
-                for file_index, file_item in enumerate(files_year_list):
-                    file = os.path.split(file_item)[1]
-                    file_name = os.path.splitext(file)[0]
-                    month = file_name.rsplit('_', 1)[1][5:]
-                    for month_index, month_item in enumerate(months_list):
-                        if month_index == 0:
-                            if int(month) <= month_item:
-                                months_path_dict[month_item].append(shape_paths_list[file_index])
-                        elif month_index != 0:
-                            if months_list[month_index - 1] < int(month) <= month_item:
-                                months_path_dict[month_item].append(shape_paths_list[file_index])
-                for i in months_list:
-                    point_path_1 = months_path_dict[i][0]
-                    output_name = f'{dem_item}_{year_item}_Bin_{bin_item}_Season{i}'
-                    point_path_tuple = (x for x in months_path_dict[i][1:])
-                    ShapeMergePoint(point_path_1, output_folder, output_name, *point_path_tuple)
+        for bin_index, bin_item in enumerate(bins_list):
+            # 先得到一年的文件
+            files_year_list = []
+            for file_index, file_item in enumerate(shape_files_list):
+                if dem_item in file_item and f'Bin_{bin_item}' in file_item:
+                    files_year_list.append(shape_paths_list[file_index])
+            # 对一年的文件按照三个月进行分组
+            # 回归日期91天，过境日期为1月后推
+            months_list = [i + 2 for i in range(1, 13, 3)]
+            months_path_dict = dict()
+            for month_item in months_list:
+                months_path_dict[month_item] = []
+            for file_index, file_item in enumerate(files_year_list):
+                file = os.path.split(file_item)[1]
+                file_name = os.path.splitext(file)[0]
+                month = file_name.rsplit('_', 1)[1][5:]
+                for month_index, month_item in enumerate(months_list):
+                    if month_index == 0:
+                        if int(month) <= month_item:
+                            months_path_dict[month_item].append(shape_paths_list[file_index])
+                    elif month_index != 0:
+                        if months_list[month_index - 1] < int(month) <= month_item:
+                            months_path_dict[month_item].append(shape_paths_list[file_index])
+            for i in months_list:
+                point_path_1 = months_path_dict[i][0]
+                output_name = f'{dem_item}_Bin_{bin_item}_Season{i}'
+                point_path_tuple = (x for x in months_path_dict[i][1:])
+                ShapeMergePoint(point_path_1, output_folder, output_name, *point_path_tuple)
+    """
+    *************************************************
+    融合4年的数据，最后结果是四个等级的数据
+    *************************************************
+    """
+    # point_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_Final_20231018\0_BaseData\1_PointData\10_FilterOutliersData'
+    # output_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_Final_20231018\0_BaseData\1_PointData\11_MergePoint'
+    # point_path_list, point_name_list = PGFiles.PathGetFiles(point_folder, '.shp')
+    # year_list = [i for i in range(2019, 2023)]
+    # dem_list = ['NASA', 'SRTM']
+    # bin_list = [i * 50 for i in range(1, 5)]
+    # # 列出三个循环条件
+    # for dem_item in dem_list:
+    #     for bin_item in bin_list:
+    #         merge_path_list = []
+    #         output_name = None
+    #         for year_item in year_list:
+    #             # 在路径列表中查找符合结果的
+    #             for name_index, name_item in enumerate(point_name_list):
+    #                 split_list = name_item.split('_')
+    #                 if split_list[0] == dem_item and int(split_list[1]) == year_item and int(split_list[3]) == bin_item:
+    #                     merge_path_list.append(point_path_list[name_index])
+    #                     output_name = f'{split_list[0]}_Bin_{int(split_list[3])}'
+    #         # 开始融合
+    #         output_path = os.path.join(output_folder, output_name)
+    #         point_path_1 = merge_path_list[0]
+    #         point_path_tuple = tuple(merge_path_list[1:])
+    #         ShapeMergePoint(point_path_1, output_folder, output_name, *point_path_tuple)

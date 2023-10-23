@@ -23,7 +23,7 @@ def PathGetFolders(_path_folder):
             _folder_path_list.append(os.path.join(_path_folder, item))
         else:
             continue
-    return _folder_path_list, _name_list
+    return _folder_path_list, _folder_name_list
 
 
 if __name__ == '__main__':

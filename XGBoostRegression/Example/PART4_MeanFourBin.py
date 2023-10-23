@@ -10,6 +10,6 @@ os.environ['PROJ_LIB'] = 'D:/Mambaforge/envs/mgdal_env/Library/share/proj'
 os.environ['GDAL_DATA'] = 'D:/Mambaforge/envs/mgdal_env/Library/share'
 
 if __name__ == '__main__':
-    raster_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231008\1_PredictData\3_MaskData'
-    output_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231008\1_PredictData\4_MeanData\20231009_1'
+    raster_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_Final_20231018\0_BaseData\2_PredictData\1_Inter\3_MaskData'
+    output_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_Final_20231018\0_BaseData\2_PredictData\1_Inter\4_MeanData'
     IXGBR.MeanBinsRaster(raster_folder, _output_path=output_folder)

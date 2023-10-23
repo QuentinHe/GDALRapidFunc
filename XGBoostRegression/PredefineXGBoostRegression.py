@@ -11,9 +11,9 @@ import xgboost as xgb
 from sklearn.metrics import r2_score, mean_squared_error
 from sklearn.model_selection import GridSearchCV
 from xgboost import XGBRegressor
-
+import PathOperation.PathFilesOperation as PFO
 from ReadRasterAndShape import ReadRaster
-from ReadRasterAndShape import ReadShape2DataFrame
+from ReadRasterAndShape import ReadPoint2DataFrame
 
 warnings.filterwarnings("ignore")
 
@@ -59,9 +59,10 @@ def Adjust_Parameters():
     #     return y_predict
 
 
-def XGBoostRegression(_x_train, _y_train, _x_validate, _y_validate, _refine_data):
+def XGBoostRegression(_x_train, _y_train, _x_validate, _y_validate, _refine_data, _csv_output_path=None):
     """
     回归拟合
+    :param _csv_output_path:
     :param _x_train: 训练数据
     :param _y_train: 训练数据结果
     :param _x_validate: 验证数据
@@ -107,6 +108,14 @@ def XGBoostRegression(_x_train, _y_train, _x_validate, _y_validate, _refine_data
     print('开始炼丹'.center(20, '-'))
     _predict_data = model.predict(_refine_data)
     print(f'炼制结果长度为:{len(_predict_data)},未降维.')
+    if _csv_output_path is not None:
+        csv_dict = dict(
+            R2=r2,
+            MSE=mse,
+            RMSE=np.sqrt(mse),
+        )
+        df = pd.DataFrame(csv_dict, index=[0])
+        df.to_csv(os.path.join(_csv_output_path, f'ValidationResult.csv'))
     return _predict_data
 
 

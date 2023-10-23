@@ -10,7 +10,7 @@ import os
 from sklearn.metrics import mean_absolute_error
 from sklearn.metrics import mean_squared_error
 import ReadRasterAndShape.ReadRaster as RR
-import ReadRasterAndShape.ReadShape2DataFrame as RSDF
+import ReadRasterAndShape.ReadPoint2DataFrame as RSDF
 
 os.environ['PROJ_LIB'] = 'D:/Mambaforge/envs/mgdal_env/Library/share/proj'
 os.environ['GDAL_DATA'] = 'D:/Mambaforge/envs/mgdal_env/Library/share'

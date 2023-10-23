@@ -25,7 +25,7 @@ import numpy as np
 import pandas as pd
 import os
 from osgeo import gdal, ogr
-import ReadRasterAndShape.ReadShape2DataFrame as rsdf
+import ReadRasterAndShape.ReadPoint2DataFrame as rsdf
 
 
 class BatchMergePointShape:

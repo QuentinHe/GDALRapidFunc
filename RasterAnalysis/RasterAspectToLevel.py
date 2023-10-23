@@ -9,7 +9,7 @@ import pandas as pd
 from osgeo import gdal, ogr, osr
 import os
 import ReadRasterAndShape.ReadRaster as RR
-import ReadRasterAndShape.ReadShape2DataFrame as RSDF
+import ReadRasterAndShape.ReadPoint2DataFrame as RSDF
 
 os.environ['PROJ_LIB'] = 'D:/Mambaforge/envs/mgdal_env/Library/share/proj'
 os.environ['GDAL_DATA'] = 'D:/Mambaforge/envs/mgdal_env/Library/share'

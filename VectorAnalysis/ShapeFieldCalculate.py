@@ -9,24 +9,25 @@ import numpy as np
 import pandas as pd
 from osgeo import gdal, ogr, osr
 import os
-import ReadRasterAndShape.ReadShape2DataFrame as RSDF
+import ReadRasterAndShape.ReadPoint2DataFrame as RSDF
+import PathOperation.PathGetFiles as PGFiles
 
 os.environ['PROJ_LIB'] = 'D:/Mambaforge/envs/mgdal_env/Library/share/proj'
 os.environ['GDAL_DATA'] = 'D:/Mambaforge/envs/mgdal_env/Library/share'
 
 
-def ShapeFieldCalculate(_input_path, _output_path, _first_field, _second_field, _result_field):
+def ShapeFieldCalculate(_input_path, _output_folder, _output_name, _first_field, _second_field, _result_field):
     ogr.RegisterAll()
     gdal.SetConfigOption("GDAL_FILENAME_IS_UTF8", "YES")
     gdal.SetConfigOption("SHAPE_ENCODING", "UTF8")
 
-    output_name = os.path.splitext(os.path.split(_output_path)[-1])[0]
-    if not os.path.exists(_output_path):
-        os.makedirs(_output_path)
+    output_path = os.path.join(_output_folder, _output_name)
+    if not os.path.exists(output_path):
         print('不存在ShapeFieldCalculate处理后的文件，以创建文件夹...')
     else:
-        shutil.rmtree(_output_path)
+        shutil.rmtree(output_path)
         print('ShapeFieldCalculate处理后的文件已存在，正在删除...')
+    os.makedirs(output_path)
 
     driver = ogr.GetDriverByName('ESRI ShapeFile')
     src_ds = ogr.Open(_input_path)
@@ -34,8 +35,8 @@ def ShapeFieldCalculate(_input_path, _output_path, _first_field, _second_field, 
     ref_srs = src_layer.GetSpatialRef()
     geom_tpye = src_layer.GetGeomType()
 
-    output_ds = driver.CreateDataSource(_output_path)
-    output_layer = output_ds.CreateLayer(output_name, ref_srs, geom_tpye)
+    output_ds = driver.CreateDataSource(output_path)
+    output_layer = output_ds.CreateLayer(_output_name, ref_srs, geom_tpye)
     temp_feature = src_layer.GetFeature(0)
     src_layer.ResetReading()
 
@@ -72,6 +73,10 @@ def ShapeFieldCalculate(_input_path, _output_path, _first_field, _second_field, 
 
 
 if __name__ == '__main__':
-    input_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\ICESat2\8_All_Raster_DataFrame_Data\5_Elevation\SRTM_2019\SRTM_2019.shp'
-    output_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20230916\1_FilterOutliers\0_AddReduceElevation\SRTM_2019'
-    ShapeFieldCalculate(input_path, output_path, 'H_Li', 'Elevation', 'Delta_Ele')
+    input_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_Final_20231018\0_BaseData\1_PointData\8_RasterFieldData'
+    output_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_Final_20231018\0_BaseData\1_PointData\9_AddDelta_EleField'
+    shape_path_list, shape_name_list = PGFiles.PathGetFiles(input_folder, '.shp')
+    for index, item in enumerate(shape_name_list):
+        input_path = shape_path_list[index]
+        output_name = os.path.splitext(os.path.split(input_path)[1])[0]
+        ShapeFieldCalculate(input_path, output_folder, output_name, 'H_Li', 'Elevation', 'Delta_Ele')

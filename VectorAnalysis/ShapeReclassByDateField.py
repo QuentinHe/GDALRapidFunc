@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 from osgeo import gdal, ogr, osr
 import os
-import ReadRasterAndShape.ReadShape2DataFrame as RSDF
+import ReadRasterAndShape.ReadPoint2DataFrame as RSDF
 import PathOperation.PathGetFiles as PGF
 
 os.environ['PROJ_LIB'] = 'D:/Mambaforge/envs/mgdal_env/Library/share/proj'
@@ -39,13 +39,13 @@ def ShapeReclassByDateField(_point_path, _output_folder):
     for i in range(1, 13):
         input_file_path, input_file = os.path.split(_point_path)
         input_file_name, input_file_suffix = os.path.splitext(input_file)
-        output_path = os.path.join(_output_folder, input_file_name, f'{input_file_name}_month{i}')
+        output_path = os.path.join(_output_folder, input_file_name, f'{input_file_name}_Month{i}')
         if os.path.exists(output_path):
             shutil.rmtree(output_path)
             print('正在删除已存在ShapeReclassByDateField文件夹路径')
         os.makedirs(output_path)
         output_ds = driver.CreateDataSource(output_path)
-        output_layer = output_ds.CreateLayer(f'{input_file_name}_month{i}', ref_srs, geom_tpye)
+        output_layer = output_ds.CreateLayer(f'{input_file_name}_Month{i}', ref_srs, geom_tpye)
         # 获取要素的相关信息
         temp_feature = src_layer.GetFeature(0)
         # 为12个layer创建字段
@@ -76,21 +76,18 @@ def ShapeReclassByDateField(_point_path, _output_folder):
 
 
 if __name__ == '__main__':
-    point_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231008\0_BaseData\BasePoint'
-    output_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231009\0_BasePoint'
+    point_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_Final_20231018\0_BaseData\1_PointData\11_MergePoint'
+    output_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_Final_20231018\0_BaseData\1_PointData\12_SeasonalPoint'
     files_path_list, files_name_list, = PGF.PathGetFiles(point_folder, '.shp')
     dem_list = ['NASA', 'SRTM']
-    year_list = [2019]
     bin_list = [i * 50 for i in range(1, 5)]
     point_path = None
     for dem_index, dem_item in enumerate(dem_list):
-        for year_index, year_item in enumerate(year_list):
-            for bin_index, bin_item in enumerate(bin_list):
-                for file_index, file_item in enumerate(files_name_list):
-                    if dem_item in file_item and str(year_item) in file_item and f'Bin_{bin_item}' in file_item:
-                        print(f'找到符合条件的{dem_item} {year_item} {bin_item} point shape文件.')
-                        point_path = files_path_list[file_index]
-                        ShapeReclassByDateField(point_path, output_folder)
-                    else:
-                        print(f'未找到符合条件的{dem_item} {year_item} {bin_item} point shape')
-
+        for bin_index, bin_item in enumerate(bin_list):
+            for file_index, file_item in enumerate(files_name_list):
+                if dem_item in file_item and f'Bin_{bin_item}' in file_item:
+                    print(f'找到符合条件的{dem_item}  {bin_item} point shape文件.')
+                    point_path = files_path_list[file_index]
+                    ShapeReclassByDateField(point_path, output_folder)
+                else:
+                    print(f'未找到符合条件的{dem_item} {bin_item} point shape')

@@ -9,7 +9,7 @@ import os
 import numpy as np
 import pandas
 import ReadRasterAndShape.ReadRaster as RR
-import ReadRasterAndShape.ReadShape2DataFrame as RSDF
+import ReadRasterAndShape.ReadPoint2DataFrame as RSDF
 
 os.environ['PROJ_LIB'] = 'D:/Mambaforge/envs/mgdal_env/Library/share/proj'
 os.environ['GDAL_DATA'] = 'D:/Mambaforge/envs/mgdal_env/Library/share'
@@ -76,9 +76,9 @@ def RasterBaseRasterClearVector(_point_raster_value, _feature_columns, _threshol
 
 
 if __name__ == '__main__':
-    raster_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\1_DEM_Slope\NASA_DEM\1_NASA_Slope.tif'
-    point_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\ICESat2\6_RGI_Point_Data\2022\2022.shp'
-    output_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\ICESat2\7_Remove_Slope_Data\NASA_2022'
+    raster_path = r"E:\Glacier_DEM_Register\Tanggula_FourYear_Data\DEM_Process\1_DEM_Slope\NASA_DEM\1_NASA_Slope.tif"
+    point_path = r"E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_Final_20231018\0_BaseData\1_PointData\6_RGI_Point_Data\2020\2020.shp"
+    output_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_Final_20231018\0_BaseData\1_PointData\7_Remove_Slope_Data\NASA_2020'
     # 获取Raster 的Data多维数组
     raster_RR = RR.ReadRaster(raster_path)
     raster_data = raster_RR.ReadRasterFile()
@@ -88,5 +88,5 @@ if __name__ == '__main__':
     # 读取Point对应在Raster上的行列数
     point_row, point_column = point_RSDF.PointMatchRasterRowColumn(raster_RR.raster_ds_geotrans)
     # 根据行列数读取Raster值
-    point_raster_value = RR.SearchRasterRowColumnData(raster_data, point_row, point_column)
+    point_raster_value = RR.SearchRasterRowColumnData(point_row, point_column, raster_ds_data=raster_data)
     RasterBaseRasterClearVector(point_raster_value, point_RSDF.feature_columns, 30, point_path, output_path)

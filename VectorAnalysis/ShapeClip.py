@@ -5,7 +5,10 @@
 # 裁剪矢量文件
 
 import os
+import shutil
+import PathOperation.PathGetFiles as PGFiles
 from osgeo import ogr, gdal
+
 os.environ['PROJ_LIB'] = 'D:/Mambaforge/envs/mgdal_env/Library/share/proj'
 os.environ['GDAL_DATA'] = 'D:/Mambaforge/envs/mgdal_env/Library/share'
 
@@ -34,11 +37,11 @@ def ShapeClip(input_path, mask_path, output_path):
     output_name = os.path.splitext(os.path.split(output_path)[-1])[0]
     # 生成裁剪后的矢量文件
     if not os.path.exists(output_path):
-        os.makedirs(output_path)
         print('不存在裁剪后的文件...')
     else:
-        os.remove(output_path)
+        shutil.rmtree(output_path)
         print('裁剪后的文件已存在，正在删除...')
+    os.makedirs(output_path)
     output_ds = driver.CreateDataSource(output_path)
     output_layer = output_ds.CreateLayer(output_name, ref_srs, geom_type)
     prog_func = gdal.TermProgress_nocb
@@ -136,10 +139,10 @@ if __name__ == '__main__':
     # union1 = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\0_Landsat8\2_Landsat8_2020_NDSI_Clip\2_Landsat8_2020_NDSI_Clip.shp'
     # union2 = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\0_Landsat8\2_Landsat8_2022_NDSI_Clip_Update_FilterPitch\Update_2_Landsat8_2022_NDSI_Clip_Update_ClearPitch.shp'
     # # union2 = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\0_Landsat8\2_Landsat8_2020_NDSI_Clip\2_Landsat8_2020_NDSI_Clip.shp'
-    # _output_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\0_Landsat8\2_Landsat8_2022_NDSI_Clip_Update_FilterPitch_Update'
-    # ShapeUpdate(union1, union2, _output_path)
+    # _output_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\0_Landsat8\2_Landsat8_2022_NDSI_Clip_Update_FilterPitch_Update'
+    # ShapeUpdate(union1, union2, _output_folder)
 
-    input_file = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\ICESat2\5_ATL06_Reprojection\2021\2021_Reproj.shp'
-    mask_file = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\0_Landsat8\3_Landsat8_RGI_FourYear\3_Landsat8_RGI_2020.shp'
-    output_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\ICESat2\6_RGI_Point_Data\2021'
+    input_file = r"E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_Final_20231018\0_BaseData\1_PointData\6_RGI_Point_Data\2020_proj.shp"
+    mask_file = r"E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_Final_20231018\0_BaseData\0_BaseRegion\1_GlaciersRegion\1_GlaciersRegion.shp"
+    output_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_Final_20231018\0_BaseData\1_PointData\6_RGI_Point_Data\2020'
     ShapeClip(input_file, mask_file, output_path)
