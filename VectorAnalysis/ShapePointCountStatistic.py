@@ -53,10 +53,34 @@ def ShapeFieldClassifyCountStatistic(_shape_path, _classify_field):
     """
     point_rsdf = RSDF.ReadPoint2DataFrame(_shape_path)
     point_df = point_rsdf.ReadShapeFile()
-    level_list = [0 for i in range(int(np.max(point_df[_classify_field])))]
+    level_list = [0 for _i in range(int(np.max(point_df[_classify_field])))]
     for _i in point_df[_classify_field]:
         level_list[int(_i) - 1] += 1
     return level_list
+
+
+def ShapeCountStatisticByDate(_shape_path, _date_field, _output_csv_path=None):
+    """
+    统计字段'Date=0526'这种格式的point，每个月有多少个点，并输出成csv
+    :param _shape_path:
+    :param _date_field:
+    :param _output_csv_path:
+    :return:
+    """
+    # 仅能统计类似于 ‘0526’这种格式
+    shape_rsdf = RSDF.ReadPoint2DataFrame(_shape_path)
+    shape_df = shape_rsdf.ReadShapeFile()
+    month_dict = dict()
+    for i in range(1, 13):
+        month_dict[i] = 0
+    for row in shape_df[_date_field].itertuples():
+        date = getattr(row, _date_field[0])[0:2]
+        month_dict[int(date)] += 1
+    month_count_df = pd.DataFrame(month_dict, index=[0])
+    print(month_count_df)
+    if _output_csv_path:
+        month_count_df.to_csv(_output_csv_path)
+    return None
 
 
 if __name__ == '__main__':

@@ -57,12 +57,12 @@ class ReadRaster:
         self.raster_ds_y_size = raster_ds.RasterYSize  # 栅格矩阵的行数
         self.raster_ds_geotrans = raster_ds.GetGeoTransform()  # 仿射矩阵，左上角像素的大地坐标和像素分辨率
         self.raster_ds_proj = raster_ds.GetProjection()  # 地图投影信息，字符串表示
-        self.nodata = raster_ds_band.GetNoDataValue()   # 栅格中设定的nodata值
+        self.nodata = raster_ds_band.GetNoDataValue()  # 栅格中设定的nodata值
         band_stat = raster_ds_band.GetStatistics(True, True)
-        self.pixel_min = band_stat[0]   # 栅格最小值，不包含Nodata
-        self.pixel_max = band_stat[1]   # 栅格最大值
+        self.pixel_min = band_stat[0]  # 栅格最小值，不包含Nodata
+        self.pixel_max = band_stat[1]  # 栅格最大值
         self.pixel_mean = band_stat[2]  # 栅格均值
-        self.pixel_std = band_stat[3]   # 栅格标准差
+        self.pixel_std = band_stat[3]  # 栅格标准差
         raster_ds_data = raster_ds_band.ReadAsArray()
         return raster_ds_data
 
@@ -109,13 +109,9 @@ class ReadRaster:
 
     def WriteRasterFile(self, raster_ds_data, _output_path, _nodata=None):
         print('正在写出栅格文件...')
-        if os.path.exists(_output_path):
-            shutil.rmtree(_output_path)
-            print('正在删除已存在文件夹')
-        os.makedirs(_output_path)
-        output_name = os.path.splitext(os.path.split(_output_path)[-1])[0] + '.tif'
+        output_name = os.path.splitext(os.path.split(_output_path)[-1])[0]
         driver = gdal.GetDriverByName('GTIFF')
-        write_ds = driver.Create(os.path.join(_output_path, output_name), self.raster_ds_x_size, self.raster_ds_y_size,
+        write_ds = driver.Create(_output_path, self.raster_ds_x_size, self.raster_ds_y_size,
                                  1, gdal.GDT_Float32,
                                  options=["INTERLEAVE=PIXEL"])
         write_ds.SetGeoTransform(self.raster_ds_geotrans)

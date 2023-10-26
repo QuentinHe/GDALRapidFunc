@@ -67,12 +67,13 @@ def RasterStatisticRasterValueByIDRaster(_src_raster_path, _id_raster_path, _out
 
 
 if __name__ == '__main__':
-    src_path = r"E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_Final_20231018\0_BaseData\2_PredictData\1_Inter\4_MeanData\SRTM_2019\SRTM_2019.tif"
-    id_path = r"E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_Final_20231018\0_BaseData\4_AnalysisRaster\2_Rasterize\Rasterize.tif"
-    output_csv_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_Final_20231018\0_BaseData\4_AnalysisRaster\3_AnalysisCSV\SRTM2019.csv'
+    # src_path = r"E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_Final_20231018\0_BaseData\2_PredictData\1_Inter\4_MeanData\SRTM_2019\SRTM_2019.tif"
+    src_path = r"E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Result_20231022\3_GlaciersDepths\DeltaIceDepths.tif"
+    # id_path = r"E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_Final_20231018\0_BaseData\4_AnalysisRaster\2_Rasterize\Rasterize.tif"
+    id_path = r"E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Result_20231022\3_GlaciersDepths\GLACID.tif"
+    output_csv_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Result_20231022\3_GlaciersDepths\DeltaIceDepths.csv'
     csv_df = RasterStatisticRasterValueByIDRaster(src_path, id_path)
     shape_path = r"E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_Final_20231018\0_BaseData\0_BaseRegion\2_GlaciersRGIRegion\Tanggula_Region_RGI.shp"
-    output_shape_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_Final_20231018\0_BaseData\4_AnalysisRaster\1_OutputRGIShape\OutputRGIShape.shp'
     polygon_rpdf = ReadShape2DataFrame(shape_path)
     polygon_df = polygon_rpdf.ReadShapeFile()
     glacier_name = polygon_df['Name']

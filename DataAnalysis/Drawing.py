@@ -106,7 +106,7 @@ def DrawingFourLine(_x_axis, _y1_axis, _y2_axis, _y3_axis, _y4_axis, _title, _x_
     return None
 
 
-def DrawingBoxs(_y_data, _x_data, _x_axis_label, _y_axis_label, _title='Boxplot'):
+def DrawingBoxs(_y_data, _x_data, _x_axis_label, _y_axis_label, _title='Boxplot', _save_path=None):
     """
     可以绘制箱线图，_y_data可以放置1组或多组数据；
     推荐多组数据使用dict()存储，分别用keys(), values()获取值；
@@ -119,15 +119,23 @@ def DrawingBoxs(_y_data, _x_data, _x_axis_label, _y_axis_label, _title='Boxplot'
     """
     plt.grid(True)
     _bp = plt.boxplot(_y_data,
-                      medianprops={'color': 'red', 'linewidth': '1.5'},
+                      medianprops={'color': 'red', 'linewidth': '1'},
                       meanline=True,
                       showmeans=True,
-                      meanprops={'color': 'blue', 'ls': '--', 'linewidth': '1.5'},
-                      flierprops={"marker": "o", "markerfacecolor": "red", "markersize": 3},
+                      meanprops={'color': 'blue', 'ls': '--', 'linewidth': '1'},
+                      flierprops={"marker": "o", "markerfacecolor": "#1c6dd0", "markersize": 6,
+                                  "markeredgecolor": 'gray'},
                       labels=_x_data)
-    plt.title(_title)
-    plt.xlabel(_x_axis_label)
-    plt.ylabel(_y_axis_label)
+    plt.title(_title, fontsize=16)
+    plt.xticks(fontsize=12)
+    plt.yticks(fontsize=12)
+    plt.xlabel(_x_axis_label, fontsize=16)
+    plt.ylabel(_y_axis_label, fontsize=16)
+    outliers_num = np.sum([item.get_ydata() for item in _bp['fliers']])
+    # plt.text(np.max(_x_data), np.min(_y_data), f'Outliers:{outliers_num}', fontsize=16)
+    plt.tight_layout()
+    if _save_path:
+        plt.savefig(_save_path)
     plt.show()
     return _bp
 
@@ -156,7 +164,7 @@ def DrawingBoxsFilters(_boxplot):
     for i in boxs_fliers:
         fliers_length += len(i)
     print(f'离群点个数:{fliers_length}')
-    return boxs_num, boxs_max, boxs_min
+    return boxs_num, boxs_max, boxs_min, fliers_length
 
 
 if __name__ == '__main__':

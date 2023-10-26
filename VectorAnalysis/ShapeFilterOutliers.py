@@ -16,7 +16,7 @@ os.environ['PROJ_LIB'] = 'D:/Mambaforge/envs/mgdal_env/Library/share/proj'
 os.environ['GDAL_DATA'] = 'D:/Mambaforge/envs/mgdal_env/Library/share'
 
 
-def ShapeFilterOutliers(_input_path, _output_path, _x_df_field, _y_df_field):
+def ShapeFilterOutliers(_input_path, _output_folder, _x_df_field, _y_df_field):
     print('正在执行函数ShapeFilterOutliers,去除箱线图中的异常值...')
     input_rsdf = RSDF.ReadPoint2DataFrame(_input_path)
     input_df = input_rsdf.ReadShapeFile()
@@ -39,12 +39,12 @@ def ShapeFilterOutliers(_input_path, _output_path, _x_df_field, _y_df_field):
     gdal.SetConfigOption("GDAL_FILENAME_IS_UTF8", "YES")
     gdal.SetConfigOption("SHAPE_ENCODING", "UTF8")
 
-    output_name = os.path.splitext(os.path.split(_output_path)[-1])[0]
-    if not os.path.exists(_output_path):
-        os.makedirs(_output_path)
+    output_name = os.path.splitext(os.path.split(_output_folder)[-1])[0]
+    if not os.path.exists(_output_folder):
+        os.makedirs(_output_folder)
         print('不存在ShapeFilterOutliers处理后的文件，以创建文件夹...')
     else:
-        shutil.rmtree(_output_path)
+        shutil.rmtree(_output_folder)
         print('ShapeFilterOutliers处理后的文件已存在，正在删除...')
 
     driver = ogr.GetDriverByName('ESRI ShapeFile')
@@ -53,7 +53,7 @@ def ShapeFilterOutliers(_input_path, _output_path, _x_df_field, _y_df_field):
     ref_srs = src_layer.GetSpatialRef()
     geom_tpye = src_layer.GetGeomType()
 
-    output_ds = driver.CreateDataSource(_output_path)
+    output_ds = driver.CreateDataSource(_output_folder)
     output_layer = output_ds.CreateLayer(output_name, ref_srs, geom_tpye)
     temp_feature = src_layer.GetFeature(0)
     src_layer.ResetReading()

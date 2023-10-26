@@ -23,12 +23,6 @@ def RasterShapeMaskRaster(_input_shape_path, _input_raster_path, _output_raster_
     :return: None
     """
     print('正在根据矢量掩膜栅格文件...')
-    if os.path.exists(_output_raster_path):
-        shutil.rmtree(_output_raster_path)
-        print('正在删除已存在文件夹...')
-    os.makedirs(_output_raster_path)
-    print('已创建输出文件夹.')
-    output_name = os.path.splitext(os.path.split(_output_raster_path)[-1])[0] + '.tif'
     gdal.AllRegister()
     prog_func = gdal.TermProgress_nocb
     mask_options = gdal.WarpOptions(
@@ -39,13 +33,13 @@ def RasterShapeMaskRaster(_input_shape_path, _input_raster_path, _output_raster_
         callback=prog_func
     )
     mask_result = gdal.Warp(
-        destNameOrDestDS=os.path.join(_output_raster_path, output_name),
+        destNameOrDestDS=_output_raster_path,
         srcDSOrSrcDSTab=_input_raster_path,
         options=mask_options
     )
     mask_result.FlushCache()
     del mask_result
-    return os.path.join(_output_raster_path, output_name)
+    return _output_raster_path
 
 
 if __name__ == '__main__':
@@ -53,9 +47,9 @@ if __name__ == '__main__':
     # input_raster_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Predict_Result\TESTA\1_Reduce\NASA_2022\NASA_2022.tif'
     # output_raster_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Predict_Result\TESTA\2_MASK\NASA_2022_Bin50'
     # input_shape_path = r"E:\Glacier_DEM_Register\Tanggula_FourYear_Data\0_Landsat8\3_Landsat8_RGI_FourYear\3_Landsat8_RGI_2020.shp"
-    input_shape_path = r"E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_Final_20231018\0_BaseData\0_BaseRegion\1_GlaciersRegion\2_GlaciersRegion.shp"
-    input_raster_path = r"E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_Final_20231018\0_BaseData\2_PredictData\1_Inter\2_MergeData\MergePredictResult_NASA_2019_Bin_50\MergePredictResult_NASA_2019_Bin_50.tif"
+    input_shape_path = r"E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_Final_20231018\1_Cartography\1_ResearchArea\TP_Basin\TP_Basin.shp"
+    input_raster_path = r"E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_Final_20231018\1_Cartography\1_ResearchArea\TP_DEM\TP_DEM_Mask.tif"
     # output_raster_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231003\3_Mask_PredictResult\2019_Bin_50'
-    output_raster_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_Final_20231018\0_BaseData\0_BaseRegion\1_GlaciersRegion\TEST'
+    output_raster_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_Final_20231018\1_Cartography\1_ResearchArea\TP_DEM\TP_DEM_Mask_1.tif'
     RasterShapeMaskRaster(input_shape_path, input_raster_path, output_raster_path)
 

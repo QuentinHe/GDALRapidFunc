@@ -141,8 +141,8 @@ class ReadShape2DataFrame:
 
 
 if __name__ == '__main__':
-    shape_path = r"E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_Final_20231018\0_BaseData\0_BaseRegion\2_GlaciersRGIRegion\Tanggula_Region_RGI.shp"
-    output_shape_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_Final_20231018\0_BaseData\4_AnalysisRaster\1_OutputRGIShape\OutputRGIShape.shp'
+    shape_path = r"E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_Final_20231018\0_BaseData\7_ConstractGlaciers\20231025_MySelectGlaciers.shp"
+    output_shape_path = r"E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_Final_20231018\0_BaseData\7_ConstractGlaciers\20231025_MySelectGlaciers_GLACID.shp"
     polygon_rpdf = ReadShape2DataFrame(shape_path)
     polygon_df = polygon_rpdf.ReadShapeFile()
     polygon_rpdf.CreateField(output_shape_path, 'GLACID', ogr.OFTInteger)
