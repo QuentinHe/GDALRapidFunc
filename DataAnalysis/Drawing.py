@@ -109,7 +109,7 @@ def DrawingFourLine(_x_axis, _y1_axis, _y2_axis, _y3_axis, _y4_axis, _title, _x_
 def DrawingBoxs(_y_data, _x_data, _x_axis_label, _y_axis_label, _title='Boxplot', _save_path=None):
     """
     可以绘制箱线图，_y_data可以放置1组或多组数据；
-    推荐多组数据使用dict()存储，分别用keys(), values()获取值；
+    推荐多组数据使用dict()存储，分别用keys(), aspect_values()获取值；
     :param _title:  标题
     :param _y_data: 数据
     :param _x_data: x轴的坐标
@@ -117,22 +117,25 @@ def DrawingBoxs(_y_data, _x_data, _x_axis_label, _y_axis_label, _title='Boxplot'
     :param _y_axis_label: y轴名称
     :return: None
     """
+    plt.figure(figsize=(6, 4))
+    plt.rc('font', family='Times New Roman', size=12)
     plt.grid(True)
     _bp = plt.boxplot(_y_data,
                       medianprops={'color': 'red', 'linewidth': '1'},
                       meanline=True,
                       showmeans=True,
                       meanprops={'color': 'blue', 'ls': '--', 'linewidth': '1'},
-                      flierprops={"marker": "o", "markerfacecolor": "#1c6dd0", "markersize": 6,
+                      flierprops={"marker": "o", "markerfacecolor": "#e9b824", "markersize": 6,
                                   "markeredgecolor": 'gray'},
                       labels=_x_data)
-    plt.title(_title, fontsize=16)
-    plt.xticks(fontsize=12)
-    plt.yticks(fontsize=12)
+    # plt.title(_title, fontsize=16)
+    plt.xticks(fontsize=16)
+    plt.yticks(fontsize=16)
     plt.xlabel(_x_axis_label, fontsize=16)
     plt.ylabel(_y_axis_label, fontsize=16)
-    outliers_num = np.sum([item.get_ydata() for item in _bp['fliers']])
-    # plt.text(np.max(_x_data), np.min(_y_data), f'Outliers:{outliers_num}', fontsize=16)
+    outliers_num = np.sum([len(item.get_ydata()) for item in _bp['fliers']])
+    y_list = [min(i) for i in _y_data]
+    plt.text(np.max(list(_x_data))*0.7, np.min(y_list), f'Outliers:{outliers_num}', fontsize=16,style='italic', weight='bold',verticalalignment='center')
     plt.tight_layout()
     if _save_path:
         plt.savefig(_save_path)

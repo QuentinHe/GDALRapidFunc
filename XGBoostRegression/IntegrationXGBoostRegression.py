@@ -16,7 +16,7 @@ import ReadRasterAndShape.ReadPoint2DataFrame as RSDF
 import ReadRasterAndShape.ReadRaster as RR
 import PathOperation.PathFilesOperation as PFO
 import XGBoostRegression.PredefineXGBoostRegression as PXGBR
-import RasterAnalysis.RasterShapeMaskRaster as RSMR
+import RasterAnalysis.RasterClipByShape as RSMR
 
 os.environ['PROJ_LIB'] = 'D:/Mambaforge/envs/mgdal_env/Library/share/proj'
 os.environ['GDAL_DATA'] = 'D:/Mambaforge/envs/mgdal_env/Library/share'
@@ -281,10 +281,10 @@ def MaskRegionAnalysis(_input_shape_path, _input_raster_path, _output_raster_fol
     # 先掩膜结果，之后分区统计结果
     # 妈的，还要传递保存的路径
     # 掩膜Predict文件
-    mask_path = RSMR.RasterShapeMaskRaster(_input_shape_path, _input_raster_path, _output_raster_folder)
+    mask_path = RSMR.RasterClipByShape(_input_shape_path, _input_raster_path, _output_raster_folder)
     # 掩膜分类文件
-    mask_reclassify_path = RSMR.RasterShapeMaskRaster(_input_shape_path, _raster_reclassify_path,
-                                                      os.path.join(_output_raster_folder, 'Reclassify'))
+    mask_reclassify_path = RSMR.RasterClipByShape(_input_shape_path, _raster_reclassify_path,
+                                                  os.path.join(_output_raster_folder, 'Reclassify'))
     # 读取分类文件
     reclassify_rr = RR.ReadRaster(mask_reclassify_path)
     reclassify_data = reclassify_rr.ReadRasterFile()

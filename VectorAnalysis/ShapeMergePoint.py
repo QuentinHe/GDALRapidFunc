@@ -33,7 +33,7 @@ def ShapeMergePoint(_point_path_1, _output_folder, _output_file_name, *other_poi
     # 读取第二个shape文件
     # sec_ds = ogr.Open(_point_path_2)
     # sec_layer = sec_ds.GetLayer()
-    # sec_rsdf = RSDF.ReadPoint2DataFrame(_point_path_1)
+    # sec_rsdf = RPDF.ReadPoint2DataFrame(_point_path_1)
     # 读取后续的多个shape文件
     other_point_ds = []
     other_point_layers = []

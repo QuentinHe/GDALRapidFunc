@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 # !/usr/bin/mgdal_env
-# @Time : 2023/10/20 10:51
+# @Time : 2023/11/8 15:47
 # @Author : Hexk
-# @Descript : 该项目的主要用途是，计算所有单一冰川的季节变化，并recover成一个曲线。现在已经得到月变化的厚度值，读取并执行拟合哈桑农户，恢复成改良结果。
+# @Descript : 重新恢复季节性数据，选择了部分冰川
+
 import time
 import numpy as np
 import pandas as pd
@@ -66,18 +67,18 @@ def SeasonalParametersFitting(_seasonal_y):
 
 
 if __name__ == '__main__':
-    origin_csv_path = r"E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_Final_20231018\0_BaseData\4_AnalysisRaster\3_AnalysisCSV\SRTM_SeasonalChange\SRTM_SeasonalChange.csv"
-    output_csv_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_Final_20231018\0_BaseData\4_AnalysisRaster\3_AnalysisCSV\SRTM_SeasonalChange'
+    origin_excel_path = r"E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_Final_20231018\1_Cartography\3_Analysis\3_Analysis_Data\20231108_7_Analysis_Excel\20231108_21_MonthSum.xlsx"
+    output_excel_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_Final_20231018\1_Cartography\3_Analysis\3_Analysis_Data\20231108_7_Analysis_Excel'
     times = time.strftime('%Y_%m_%d_%H%M%S', time.localtime())
-    origin_csv_df = pd.read_csv(origin_csv_path)
+    origin_excel_df = pd.read_excel(origin_excel_path)
     # 选择所有包含Mean的列
-    select_columns = [i for i in origin_csv_df.columns if 'Mean' in i]
-    select_df = origin_csv_df[select_columns]
-    select_metadata_df = origin_csv_df[['ID', 'Glaciers_Name', 'PixelNums']]
+    select_columns = [i for i in origin_excel_df.columns if 'Mean' in i]
+    select_df = origin_excel_df[select_columns]
+    select_metadata_df = origin_excel_df[['ID', 'Glaciers_Name', 'PixelNums']]
     # 拿出不符合顺序的列
-    month10 = select_df.pop('SRTM_Month10_Mean')
-    month11 = select_df.pop('SRTM_Month11_Mean')
-    month12 = select_df.pop('SRTM_Month12_Mean')
+    month10 = select_df.pop('Month10_Mean')
+    month11 = select_df.pop('Month11_Mean')
+    month12 = select_df.pop('Month12_Mean')
     # 重新拼接
     select_df = pd.concat([select_df, month10, month11, month12], axis=1)
     # 生成存储拟合参数和拟合后结果的字典
@@ -108,7 +109,8 @@ if __name__ == '__main__':
     parameters_df = pd.DataFrame(fitting_parameters_dict)
     fitting_y_df = pd.DataFrame(fitting_data_dict)
     fitting_result_df = pd.concat([select_metadata_df, fitting_y_df], axis=1)
-    output_parameters_csv_path = os.path.join(output_csv_folder, f'SRTM_RecoverSeasonalChange_Parameters_{times}.csv')
-    output_fitting_csv_path = os.path.join(output_csv_folder, f'SRTM_RecoverSeasonalChange_FittingData_{times}.csv')
-    parameters_df.to_csv(output_parameters_csv_path)
-    fitting_result_df.to_csv(output_fitting_csv_path)
+    output_parameters_excel_path = os.path.join(output_excel_folder, f'20231108_21_RecoverSeasonalChange_Parameters_{times}.xlsx')
+    output_fitting_excel_path = os.path.join(output_excel_folder, f'20231108_21_RecoverSeasonalChange_FittingData_{times}.xlsx')
+    parameters_df.to_excel(output_parameters_excel_path)
+    fitting_result_df.to_excel(output_fitting_excel_path)
+

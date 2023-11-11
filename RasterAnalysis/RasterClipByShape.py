@@ -11,7 +11,7 @@ os.environ['PROJ_LIB'] = 'D:/Mambaforge/envs/mgdal_env/Library/share/proj'
 os.environ['GDAL_DATA'] = 'D:/Mambaforge/envs/mgdal_env/Library/share'
 
 
-def RasterShapeMaskRaster(_input_shape_path, _input_raster_path, _output_raster_path):
+def RasterClipByShape(_input_shape_path, _input_raster_path, _output_raster_path):
     """
     实现根据矢量掩膜栅格
     mask_options中还有许多可调节参数，根据gdal.warp函数可以实现重投影和重采样
@@ -51,5 +51,5 @@ if __name__ == '__main__':
     input_raster_path = r"E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_Final_20231018\1_Cartography\1_ResearchArea\TP_DEM\TP_DEM_Mask.tif"
     # output_raster_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231003\3_Mask_PredictResult\2019_Bin_50'
     output_raster_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_Final_20231018\1_Cartography\1_ResearchArea\TP_DEM\TP_DEM_Mask_1.tif'
-    RasterShapeMaskRaster(input_shape_path, input_raster_path, output_raster_path)
+    RasterClipByShape(input_shape_path, input_raster_path, output_raster_path)
 

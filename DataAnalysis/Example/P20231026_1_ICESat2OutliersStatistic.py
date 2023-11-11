@@ -40,7 +40,7 @@ if __name__ == '__main__':
     #             boxplot_data_dict[j].append(input_df['Delta_Ele'][i])
     #         # 绘制箱线图
     #         print('正在绘制箱线图...')
-    #         boxplot = Drawing.DrawingBoxs(boxplot_data_dict.values(), boxplot_data_dict.keys(), 'Elevation Bin',
+    #         boxplot = Drawing.DrawingBoxs(boxplot_data_dict.aspect_values(), boxplot_data_dict.keys(), 'Elevation Bin',
     #                                       'Elevation Anomaly (m)',
     #                                       _title=f'Elevation Interval {bin_item}m')
     #         boxs_num, boxs_max, boxs_min, fliers_nums = Drawing.DrawingBoxsFilters(boxplot)
@@ -54,7 +54,8 @@ if __name__ == '__main__':
     """
     还是一张一张输出，不过是四年分四次，改变一下颜色
     """
-    input_rsdf = RPDF.ReadPoint2DataFrame(srtm_path_list[0])
+    markerfacecolor_list = ['#1c6cd0', '#f45050', '#1e9d90', '#e9b824']
+    input_rsdf = RPDF.ReadPoint2DataFrame(srtm_path_list[3])
     input_df = input_rsdf.ReadShapeFile()
     filter_list = []
     for bin_item in bin_list:
@@ -64,7 +65,7 @@ if __name__ == '__main__':
         for i, j in enumerate(input_df[f'Bin_{bin_item}']):
             boxplot_data_dict[j].append(input_df['Delta_Ele'][i])
         print('正在绘制箱线图...')
-        pic_path = os.path.join(output_pic_folder, f'20231026_2_SRTM2019_Boxplot_Bin{bin_item}.png')
+        pic_path = os.path.join(output_pic_folder, f'20231026_2_SRTM2022_Boxplot_Bin{bin_item}.png')
         boxplot = Drawing.DrawingBoxs(boxplot_data_dict.values(), boxplot_data_dict.keys(), 'Elevation Bin',
                                       'Elevation Anomaly (m)',
                                       _title=f'Elevation Interval {bin_item}m',
