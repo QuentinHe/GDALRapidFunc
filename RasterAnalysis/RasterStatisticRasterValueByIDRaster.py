@@ -27,12 +27,13 @@ def RasterStatisticRasterValueByIDRaster(_src_raster_path, _id_raster_path, _out
     id_raster_min = id_rr.pixel_min
     id_min = np.min(id_raster_data)
     # 这里存在问题，band统计后的结果与np统计的不符合
-    # print(id_raster_max, id_raster_min)
-    # print(id_max, id_min)
+    print(id_raster_max, id_raster_min)
+    print(id_max, id_min)
     id_raster_nodata = id_rr.nodata
     # 统计，写入dict
     id_dict = dict()
-    print(f'正在统计...')
+    print(f'正在统计'.center(30, ' '))
+    print(f'ID范围为:{id_raster_min, np.max(id_raster_data)}'.center(30, ' '))
     for i in np.arange(id_raster_min, np.max(id_raster_data) + 1):
         i = int(i)
         id_dict[i] = []
@@ -46,17 +47,23 @@ def RasterStatisticRasterValueByIDRaster(_src_raster_path, _id_raster_path, _out
                 continue
     # 变成统计结果
     sum_list = []
-    mean_list = []
     pixel_num_list = []
+    mean_list = []
+    max_list = []
+    min_list = []
     for key, value in id_dict.items():
         sum_list.append(np.sum(value))
         mean_list.append(np.mean(value))
         pixel_num_list.append(len(value))
+        max_list.append(np.max(value))
+        min_list.append(np.min(value))
     csv_dict = dict(
         ID=id_dict.keys(),
         Sum=sum_list,
-        Mean=mean_list,
         PixelNums=pixel_num_list,
+        Mean=mean_list,
+        Max=max_list,
+        Min=min_list
     )
     _csv_df = pd.DataFrame(csv_dict)
     print(_csv_df)
