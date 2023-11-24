@@ -17,6 +17,7 @@ if __name__ == '__main__':
     result_df = pd.read_excel(excel_path, sheet_name='Result')
     month_labels = [i for i in range(1, 13)]
     plt.rc('font', family='Times New Roman', size=14)
+    plt.figure(dpi=300)
     plt.plot(month_labels, list(result_df.iloc[0])[1:], c='#1976D2', marker='o', markersize=5, markeredgewidth=1.5,
              label=result_df['Name'][0])
     plt.plot(month_labels, list(result_df.iloc[1])[1:], c='#00796B', marker='^', markersize=5, markeredgewidth=1.5,
@@ -29,5 +30,7 @@ if __name__ == '__main__':
     plt.xlabel('Month', fontsize=16)
     plt.ylabel('Glacier Elevation Change(m)', fontsize=16)
     plt.legend(prop={'size': 12})
+    plt.savefig(
+        r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_Final_20231018\1_Cartography\2_Method&Data\20231207_1_RecoverFitting.jpeg')
     plt.tight_layout()
     plt.show()

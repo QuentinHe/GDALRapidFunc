@@ -20,15 +20,15 @@ if __name__ == '__main__':
     aspect_df = pd.read_excel(excel_path, sheet_name='Aspect')
 
     # plt.style.use('ggplot')
-    plt.rc('font', family='Times New Roman', size=20)
-    plt.figure(figsize=(16, 8))
+    plt.rc('font', family='Times New Roman', size=22)
+    plt.figure(figsize=(16, 8), dpi=300)
 
     p1 = plt.subplot(243)
     elevation_labels = [5375, 5425, 5475, 5525, 5575, 5625, 5675, 5725, 5775, 5825, 5875, 5925, 5975, 6025, 6075, 6125]
     elevation_data = [i * 20 for i in list(elevation_df.iloc[0])[1:]]
     p1.plot(elevation_labels, elevation_data, c='#146c94', marker='s', markersize=4, markeredgewidth=1)
-    p1.set_xlabel('Elevation(m)')
-    p1.set_ylabel('Elevation Change(m)')
+    p1.set_xlabel('Elevation (m)')
+    p1.set_ylabel('Elevation Change (m)')
 
     p2 = plt.subplot(244)
     slope_labels = [0, 3.37, 5.13, 7.12, 9.70, 13.33, 18.96, 27.44]
@@ -79,7 +79,7 @@ if __name__ == '__main__':
     plt.subplot(242)
     plt.hist(year_rmse, color='#82a0d8', ec='#1a374d', label='Annual')
     plt.xlabel('RMSE (m)')
-    plt.ylabel('Number of elevation bins')
+    # plt.ylabel('Number of elevation bins')
     plt.legend(fontsize=16)
     # 绘制第三个子图 月变化拟合的R2
     plt.subplot(245)
@@ -91,7 +91,9 @@ if __name__ == '__main__':
     plt.subplot(246)
     plt.hist(seasonal_rmse, color='#ffcc70', ec='#1a374d', label='Monthly')
     plt.xlabel('RMSE (m)')
-    plt.ylabel('Number of elevation bins')
+    # plt.ylabel('Number of elevation bins')
     plt.legend(fontsize=16)
     plt.tight_layout()
+    plt.savefig(
+        r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_Final_20231018\1_Cartography\3_Analysis\20231207_1_Figure7.jpeg')
     plt.show()

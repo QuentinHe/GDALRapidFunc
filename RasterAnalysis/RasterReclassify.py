@@ -10,6 +10,7 @@ import pandas as pd
 from osgeo import gdal, ogr, osr
 import os
 import ReadRasterAndShape.ReadRaster as RR
+import PathOperation.PathGetFiles as PGF
 
 os.environ['PROJ_LIB'] = 'D:/Mambaforge/envs/mgdal_env/Library/share/proj'
 os.environ['GDAL_DATA'] = 'D:/Mambaforge/envs/mgdal_env/Library/share'
@@ -56,16 +57,24 @@ def RasterReclassify(_raster_path, _raster_output_path, _classify_list=None, **k
 
 
 if __name__ == '__main__':
-    # input_raster_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\0_BaseDEM\NASA_DEM\NASA_DEM.tif'
-    # output_raster_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\DEM_Process\2_DEM_Reclassify\NASA_Reclassify_200'
-    # raster_rr = RR.ReadRaster(input_raster_path)
-    # raster_data = raster_rr.ReadRasterFile()
-    # bins_data = RasterReclassify(raster_data, 5400, 6150, 200)
-    # raster_rr.WriteRasterFile(bins_data, output_raster_path)
-    slope_path = r"E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_Final_20231018\1_Cartography\3_Analysis\3_Analysis_Data\20231110_1_DEM_Production\Slope_Mask.tif"
-    undulation_path = r"E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_Final_20231018\1_Cartography\3_Analysis\3_Analysis_Data\20231110_1_DEM_Production\Undulation_Mask.tif"
-    output_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_Final_20231018\1_Cartography\3_Analysis\3_Analysis_Data\20231110_1_DEM_Production'
-    output_name = os.path.splitext(os.path.split(undulation_path)[1])[0]
-    output_path = os.path.join(output_folder, f'Reclassify_{output_name}.tif')
-    # RasterReclassify(slope_path, output_path, _classify_list=[0, 3.37, 5.12, 7.12, 9.7, 13.33, 18.96, 27.44])
-    RasterReclassify(undulation_path, output_path, _classify_list=[0, 5, 7, 10, 13, 18, 26, 40])
+    # # input_raster_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\0_BaseDEM\NASA_DEM\NASA_DEM.tif'
+    # # output_raster_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\DEM_Process\2_DEM_Reclassify\NASA_Reclassify_200'
+    # # raster_rr = RR.ReadRaster(input_raster_path)
+    # # raster_data = raster_rr.ReadRasterFile()
+    # # bins_data = RasterReclassify(raster_data, 5400, 6150, 200)
+    # # raster_rr.WriteRasterFile(bins_data, output_raster_path)
+    # slope_path = r"E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_Final_20231018\1_Cartography\3_Analysis\3_Analysis_Data\20231110_1_DEM_Production\Slope_Mask.tif"
+    # undulation_path = r"E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_Final_20231018\1_Cartography\3_Analysis\3_Analysis_Data\20231110_1_DEM_Production\Undulation_Mask.tif"
+    # output_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_Final_20231018\1_Cartography\3_Analysis\3_Analysis_Data\20231110_1_DEM_Production'
+    # output_name = os.path.splitext(os.path.split(undulation_path)[1])[0]
+    # output_path = os.path.join(output_folder, f'Reclassify_{output_name}.tif')
+    # # RasterReclassify(slope_path, output_path, _classify_list=[0, 3.37, 5.12, 7.12, 9.7, 13.33, 18.96, 27.44])
+    # RasterReclassify(undulation_path, output_path, _classify_list=[0, 5, 7, 10, 13, 18, 26, 40])
+
+    # ----
+    srtm_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_Supplement_20240513\4_BaseSRTMDEM'
+    output_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_Supplement_20240513\5_BaseDEMProductions\Reclassify\Reclassify100'
+    path_list, path_filename = PGF.PathGetFiles(srtm_folder, '.tif')
+    for index, item in enumerate(path_list):
+        RasterReclassify(item, os.path.join(output_folder, path_filename[index] + '_Reclassify100.tif'),
+                         _classify_list=[0, 5400, 5500, 5600, 5700, 5800, 5900, 6000, 6100])

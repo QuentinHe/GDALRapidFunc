@@ -32,52 +32,7 @@ class ReadShape2DataFrame:
         print(''.center(30, '-'))
         print(f'{self.input_path}'.center(30, ' '))
         print(''.center(30, '-'))
-        gdal.SetConfigOption("GDAL_FILENAME_IS_UTF8", "YES")
-        gdal.SetConfigOption("SHAPE_ENCODING", "UTF-8")
-        ogr.RegisterAll()
-        ds = ogr.Open(self.input_path)
-        self.layer_count = ds.GetLayerCount()
-        layer = ds.GetLayerByIndex(0)
-        layer.ResetReading()
-        # 默认参数 0
-        self.layer_feature_count = layer.GetFeatureCount()
-        if self.layer_feature_count:
-            feature = layer.GetNextFeature()
-            geom = feature.GetGeometryRef()
-            geometry = geom.GetGeometryName()
-            self.geometry = geometry
-            print(f'Geometry：{self.geometry}'.center(30, ' '))
-        feature_define = layer.GetLayerDefn()
-        # 获取属性表的字段个数
-        feature_define_count = feature_define.GetFieldCount()
-        # 存储属性表表头
-        feature_columns = []
-        feature_columns_types = []
-        for index in range(feature_define_count):
-            feature_field = feature_define.GetFieldDefn(index)
-            # 获取字段名称，这个部分在DF写入属性的时候有用
-            feature_name = feature_field.GetNameRef()
-            feature_columns.append(feature_name)
-            # 获取字段的数据类型
-            feature_columns_types.append(feature_field.GetFieldTypeName(feature_field.GetType()))
-        self.feature_columns = feature_columns
-        self.feature_columns_types = feature_columns_types
-        feature_attribute_dict = dict(((name, []) for name in feature_columns))
-        for i in range(self.layer_feature_count):
-            feature = layer.GetFeature(i)
-            for index, item in enumerate(feature_columns):
-                if 'Real' in feature_columns_types[index]:
-                    feature_attribute_dict[item].append(feature.GetFieldAsDouble(item))
-                elif 'Integer' in feature_columns_types[index]:
-                    feature_attribute_dict[item].append(feature.GetFieldAsInteger(item))
-                else:
-                    feature_attribute_dict[item].append(feature.GetFieldAsString(item))
-        del ds
-        _feature_df = pd.DataFrame(feature_attribute_dict)
-        print(f'Shape Feature DataFrame长度为:{len(_feature_df)}'.center(30, ' '))
-        print(f'Shape Feature Field Column长度为:{len(self.feature_columns)}'.center(30, ' '))
-        print('读取完成'.center(30, '*'))
-        return _feature_df
+
 
     def CreateField(self, _output_shape_path, _field_name, _field_type, _field_value_list=None):
         """

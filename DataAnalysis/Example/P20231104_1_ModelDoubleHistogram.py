@@ -23,7 +23,7 @@ if __name__ == '__main__':
     seasonal_rmse = seasonal_csv_df['RMSE']
 
     plt.rc('font', family='Times New Roman', size=12)
-    plt.figure(figsize=(8, 6))
+    plt.figure(figsize=(8, 6), dpi=300)
     # 绘制第一个子图 年变化拟合的R2
     plt.subplot(221)
     plt.hist(year_r2, color='#82aae3', ec='#1a374d', label='Annual changes')

@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 # !/usr/bin/mgdal_env
-# @Time : 2023/10/7 9:47
+# @Time : 2024/5/10 下午8:17
 # @Author : Hexk
-# @Descript : 循环预测所有的分级结果
-
+# @Descript : 重新复写PART1,只保留SRTM部分,减少计算时间. 注意：CSV文件的修改路径在IntegrationXGBoostRegression函数中
+import numpy as np
+import pandas as pd
+from osgeo import gdal, ogr, osr
 import shutil
 import PathOperation.PathGetFiles as PGF
 import XGBoostRegression.IntegrationXGBoostRegression as IXGBR
@@ -16,59 +18,33 @@ if __name__ == '__main__':
     # RGI区域
     rgi_path = r"E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_Pre_20240510\0_PreTest_BaseData\1_GlaciersRegion\1_GlaciersRegion.shp"
     # 基准DEM
-    dem_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\0_BaseData\BaseDEM'
+    dem_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_Pre_20240510\0_PreTest_BaseData\4_BaseSRTMDEM'
     dem_path_list, dem_files_list = PGF.PathGetFiles(dem_folder, '.tif')
-    # NASA数据
-    nasa_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\0_BaseData\BaseDEMProductions\NASA'
-    nasa_path_list, nasa_files_list = PGF.PathGetFiles(nasa_folder, '.tif')
     # SRTM数据
-    srtm_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\0_BaseData\BaseDEMProductions\SRTM'
+    srtm_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_Pre_20240510\0_PreTest_BaseData\5_BaseDEMProductions\SRTM'
     srtm_path_list, srtm_files_list = PGF.PathGetFiles(srtm_folder, '.tif')
     # 公共数据
+    # 公共数据只有projx projy
     common_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\0_BaseData\BaseDEMProductions\CommonData'
     common_path_list, common_files_list = PGF.PathGetFiles(common_folder, '.tif')
     # Point数据
-    # nasa_point_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\0_BaseData\BasePoint\NASA'
-    # nasa_point_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231008\0_BaseData\BasePoint\NASA'
-    nasa_point_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_Final_20231018\0_BaseData\1_PointData\11_MergePoint'
-    # srtm_point_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\0_BaseData\BasePoint\SRTM'
-    # srtm_point_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231008\0_BaseData\BasePoint\SRTM'
-    srtm_point_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_Final_20231018\0_BaseData\1_PointData\11_MergePoint'
-    nasa_point_path_list, nasa_point_files_list = PGF.PathGetFiles(nasa_point_folder, '.shp')
+    srtm_point_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_Pre_20240510\1_PreTest_ICESat-2PointData\11_MergePoint'
     srtm_point_path_list, srtm_point_files_list = PGF.PathGetFiles(srtm_point_folder, '.shp')
 
     """
     PART 1
     """
     # 先循环NASA，再循环SRTM
-    # 循环年份
-    # 循环某一年的bin
-    # xgboost_output_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\1_PredictData\1_XGBoostData'
-    # xgboost_output_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_Final_20231018\0_BaseData\2_PredictData\1_Inter\1_XGBoostData'
     xgboost_output_folder = r"E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_Pre_20240510\2_PreTest_PredictData\1_Inter\1_XGBoostData"
     # 循环DEM， 先NASA，再SRTM
     for dem_index, dem_item in enumerate(dem_path_list):
         dem_type = dem_files_list[dem_index].split('_')[0]  # NASA or SRTM
         # dem_type = 'SRTM'
-        # 循环年份
-        # for year_index, year_item in enumerate([i for i in range(2019, 2023)]):
         # 循环Bin等级
         for bin_index, bin_item in enumerate([i * 50 for i in range(1, 5)]):
             # 寻找Point File Path
             point_path = None
-            if dem_type == 'NASA':
-                print('正在执行NASA部分...')
-                # 找到对应的point_path
-                for point_files_index, point_files_item in enumerate(nasa_point_files_list):
-                    print(point_files_item)
-                    if dem_type in point_files_item and f'Bin_{bin_item}' in point_files_item:
-                        print(f'当前执行条件为:{dem_type}  {bin_item}'
-                              f'已找到文件名为:{point_files_item}')
-                        point_path = nasa_point_path_list[point_files_index]
-                        break
-                    else:
-                        print(f'ERROR: 不存在符合条件为:{dem_type} {bin_item}的Point Shape文件.*')
-            elif dem_type == 'SRTM':
+            if dem_type == 'SRTM':
                 print('正在执行SRTM部分...')
                 # 找到对应的point_path
                 for point_files_index, point_files_item in enumerate(srtm_point_files_list):
@@ -104,22 +80,7 @@ if __name__ == '__main__':
                 elif 'Y' in proj_item:
                     raster_projy_path = common_path_list[proj_index]
                     print(f'已经找到{dem_type}的Proj Y文件')
-            if dem_type == 'NASA' or 'nasa':
-                print('正在寻找NASA的相关DEM产品路径...')
-                for dem_productions_index, dem_productions_item in enumerate(nasa_files_list):
-                    if 'Slope' in dem_productions_item:
-                        print(f'已经找到{dem_type}的Slope文件.')
-                        raster_slope_path = nasa_path_list[dem_productions_index]
-                    elif 'Aspect' in dem_productions_item:
-                        print(f'已经找到{dem_type}的Aspect文件.')
-                        raster_aspect_path = nasa_path_list[dem_productions_index]
-                    elif 'Undulation' in dem_productions_item:
-                        print(f'已经找到{dem_type}的Undulation文件.')
-                        raster_undulation_path = nasa_path_list[dem_productions_index]
-                    elif 'Reclassify' in dem_productions_item and f'_{bin_item}' in dem_productions_item:
-                        print(f'已经找到{dem_type}的Reclassify文件,等级{bin_item}.')
-                        raster_reclassify_path = nasa_path_list[dem_productions_index]
-            elif dem_type == 'SRTM' or 'srtm':
+            if dem_type == 'SRTM' or 'srtm':
                 print('正在寻找SRTM的相关DEM产品路径...')
                 for dem_productions_index, dem_productions_item in enumerate(srtm_files_list):
                     if 'Slope' in dem_productions_item:

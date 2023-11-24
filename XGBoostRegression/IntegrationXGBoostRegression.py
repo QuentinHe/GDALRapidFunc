@@ -95,12 +95,12 @@ def IntegrationXGBoostRegression(_shape_path, _x_var, _y_var, _bin_level,
         print(f'projy:{projy_data.shape}')
         projy_data_list = projy_data.reshape(-1)
 
-    print('正在进行数据格式转换...')
-    point_df = RSDF.DataFrameFormatConvert(point_df,
-                                           int_field=['Segment_ID', 'Aspect', 'Bin_50', 'Bin_100', 'Bin_150',
-                                                      'Bin_200'],
-                                           float_field=['Latitudes', 'Longitudes', 'H_Li', 'DEM_H', 'Delta_H',
-                                                        'Undulation', 'Elevation', 'Slope', 'Proj_X', 'Proj_Y'])
+    # print('正在进行数据格式转换...')
+    # point_df = RSDF.DataFrameFormatConvert(point_df,
+    #                                        int_field=['Segment_ID', 'Aspect', 'Bin_50', 'Bin_100', 'Bin_150',
+    #                                                   'Bin_200'],
+    #                                        float_field=['Latitudes', 'Longitudes', 'H_Li', 'DEM_H', 'Delta_H',
+    #                                                     'Undulation', 'Elevation', 'Slope', 'Proj_X', 'Proj_Y'])
 
     print('正在形成预测数据集...')
     predict_dict = dict(
@@ -113,14 +113,140 @@ def IntegrationXGBoostRegression(_shape_path, _x_var, _y_var, _bin_level,
     predict_df = pd.DataFrame(predict_dict)
 
     print('正在形成训练集和验证集...')
-    for i in range(min(point_df[_bin_level]), max(point_df[_bin_level]) + 1):
+    for i in range(int(min(point_df[_bin_level])), int(max(point_df[_bin_level])) + 1):
         temp_df = point_df.loc[point_df[_bin_level] == i]
         x_df = temp_df[_x_var]
         y_df = temp_df[_y_var]
         x_train, x_test, y_train, y_test, = model_selection.train_test_split(x_df, y_df, train_size=0.7)
-        output_path = os.path.join(_output_path, f'{_bin_level}_{i}')
+        output_path = os.path.join(_output_path, f'{_bin_level}_{i}.tif')
         output_name = _output_path.rsplit('\\', 1)[1] + f'{_bin_level}_{i}'
-        output_csv_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_Final_20231018\0_BaseData\3_CSV\2_Intra\1_XGBoostCSV'
+        output_csv_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_Supplement_20240513\17_XGBoostCSV'
+        output_csv_path = os.path.join(output_csv_folder, output_name)
+        PFO.MakeFolder(output_csv_path)
+        _predict_data = PXGBR.XGBoostRegression(x_train, y_train, x_test, y_test, predict_df,
+                                                _csv_output_path=output_csv_path)
+        output_predict_data = np.array(_predict_data).reshape(reclassify_rr.raster_ds_y_size,
+                                                              reclassify_rr.raster_ds_x_size)
+        reclassify_rr.WriteRasterFile(output_predict_data, output_path)
+    return None
+
+
+def IntegrationMultipleXGBoostRegression(_shape_path, _x_var, _y_var, _bin_level, _condition_type,
+                                         _output_path,
+                                         _raster_reclassify_path=None,
+                                         _raster_slope_path=None,
+                                         _raster_aspect_path=None,
+                                         _raster_undulation_path=None,
+                                         _raster_projx_path=None,
+                                         _raster_projy_path=None):
+    """
+    实现了分段XGBoost回归。利用每个高程箱的点进行回归，并得到每个高程箱的拟合整体的结果。
+    下一步需要读取reclassify，并根据每个像元的level，读取到指定结果中像元的值，融合成一个结果。
+    :param _condition_type:
+    :param _shape_path: point路径
+    :param _x_var: 预测的x变量参数，shp point中的字段
+    :param _y_var: y变量参数，shp point中的字段
+    :param _bin_level: 指名是那个等级，需要在shp中有标记
+    :param _output_path: 输出路径
+    :param _raster_reclassify_path: reclassify栅格路径
+    :param _raster_slope_path: slope栅格路径
+    :param _raster_aspect_path: aspect栅格路径
+    :param _raster_undulation_path: undulation栅格路径
+    :param _raster_projx_path: projx栅格路径
+    :param _raster_projy_path: projy栅格路径
+    :return:
+    """
+    # 1. 读取矢量点和栅格文件
+    # 2. 将值转换成list格式，后组成新的df
+    # 3. XGBoost训练每一次的Bin分类
+    # 4. 得到每一次等级预测的结果，输出每个等级预测的tif文件
+    # 5. 按照Reclassify文件的值，从每个等级预测结果文件中读取指定像元的值，组成一副新的预测结果，并输出该结果；
+    # 6. 重复上述操作直到Bin50 100 150 200的数据预测结果全部生成后，进行平均得到最终结果
+    # 7. 掩膜栅格数据到RGI对应范围
+    # 7. 分析：得到4年的最终结果。
+    # ----------------
+    # 本函数的用途是 实现2的后半部，3，4，5
+    # ----------------
+    print('正在执行IntegrationXGBoostRegression函数...')
+    print('正在读取point数据'.center(30, '-'))
+    point_rsdf = RSDF.ReadPoint2DataFrame(_shape_path)
+    point_df = point_rsdf.ReadShapeFile()
+
+    print('正在读取raster数据'.center(30, '-'))
+    slope_data_list, aspect_data_list, undulation_data_list, reclassify_data_list, projx_data_list, projy_data_list, reclassify_rr = None, None, None, None, None, None, None
+    if _raster_slope_path is not None:
+        slope_rr = RR.ReadRaster(_raster_slope_path)
+        slope_data = slope_rr.ReadRasterFile()
+        print(f'slope:{slope_data.shape}')
+        slope_data_list = slope_data.reshape(-1)
+    if _raster_reclassify_path is not None:
+        reclassify_rr = RR.ReadRaster(_raster_reclassify_path)
+        reclassify_data = reclassify_rr.ReadRasterFile()
+        print(f'reclassify:{reclassify_data.shape}')
+        reclassify_data_list = reclassify_data.reshape(-1)
+    if _raster_aspect_path is not None:
+        aspect_rr = RR.ReadRaster(_raster_aspect_path)
+        aspect_data = aspect_rr.ReadRasterFile()
+        print(f'aspect:{aspect_data.shape}')
+        aspect_data_list = aspect_data.reshape(-1)
+    if _raster_undulation_path is not None:
+        undulation_rr = RR.ReadRaster(_raster_undulation_path)
+        undulation_data = undulation_rr.ReadRasterFile()
+        print(f'undulation:{undulation_data.shape}')
+        undulation_data_list = undulation_data.reshape(-1)
+    if _raster_projx_path is not None:
+        projx_rr = RR.ReadRaster(_raster_projx_path)
+        projx_data = projx_rr.ReadRasterFile()
+        print(f'projx:{projx_data.shape}')
+        projx_data_list = projx_data.reshape(-1)
+    if _raster_projy_path is not None:
+        projy_rr = RR.ReadRaster(_raster_projy_path)
+        projy_data = projy_rr.ReadRasterFile()
+        print(f'projy:{projy_data.shape}')
+        projy_data_list = projy_data.reshape(-1)
+
+    print('正在进行数据格式转换...')
+    ctype_list_abb = ['M5', 'M10', 'P5', 'P10', 'R5', 'R10']
+    bin_list = ['B50', 'B100', 'B150', 'B200']
+    int_fields = ['Segment_ID']
+    for i in bin_list:
+        for j in ctype_list_abb:
+            int_fields.append(f'{i}_{j}')
+    float_fields = ['Latitudes', 'Longitudes', 'H_Li', 'DEM_H', 'Delta_H', 'Proj_X', 'Proj_Y']
+    attribute_list = ['DEM', 'Asp', 'Slp', 'Und', 'DH']
+    for i in attribute_list:
+        for j in ctype_list_abb:
+            float_fields.append(f'{i}_{j}')
+    point_df = RSDF.DataFrameFormatConvert(point_df,
+                                           int_field=int_fields,
+                                           float_field=float_fields)
+
+    print('正在形成预测数据集...')
+    predict_dict = {
+        f'Slp_{_condition_type}': slope_data_list,
+        f'Asp_{_condition_type}': aspect_data_list,
+        f'Und_{_condition_type}': undulation_data_list,
+        'Proj_X': projx_data_list,
+        'Proj_Y': projy_data_list,
+    }
+    # predict_dict = dict(
+    #     Slope=slope_data_list,
+    #     Aspect=aspect_data_list,
+    #     Undulation=undulation_data_list,
+    #     Proj_X=projx_data_list,
+    #     Proj_Y=projy_data_list,
+    # )
+    predict_df = pd.DataFrame(predict_dict)
+
+    print('正在形成训练集和验证集...')
+    for i in range(int(min(point_df[_bin_level])), int(max(point_df[_bin_level])) + 1):
+        temp_df = point_df.loc[point_df[_bin_level] == i]
+        x_df = temp_df[_x_var]
+        y_df = temp_df[_y_var]
+        x_train, x_test, y_train, y_test, = model_selection.train_test_split(x_df, y_df, train_size=0.7)
+        output_path = os.path.join(_output_path, f'{_bin_level}_{i}.tif')
+        output_name = _output_path.rsplit('\\', 1)[1] + f'{_bin_level}_{i}'
+        output_csv_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_Supplement_20240513\17_XGBoostCSV'
         output_csv_path = os.path.join(output_csv_folder, output_name)
         PFO.MakeFolder(output_csv_path)
         _predict_data = PXGBR.XGBoostRegression(x_train, y_train, x_test, y_test, predict_df,
@@ -160,9 +286,50 @@ def MergeRegressionClassify(_predict_folder_path, _raster_reclassify_path, _outp
             merge_data[i][j] = raster_data[f'{files_prefix}_{int(raster_reclassify_data[i][j])}'][i][j]
     print('正在输出结果...')
     if _dem_type and _year is not None:
-        output_path = os.path.join(_output_merge_folder, f'MergePredictResult_{_dem_type}_{_year}_{files_prefix}')
+        output_path = os.path.join(_output_merge_folder, f'MergePredictResult_{_dem_type}_{_year}_{files_prefix}.tif')
     else:
-        output_path = os.path.join(_output_merge_folder, f'MergePredictResult_{files_prefix}')
+        output_path = os.path.join(_output_merge_folder, f'MergePredictResult_{files_prefix}.tif')
+    raster_reclassify_rr.WriteRasterFile(merge_data, output_path)
+    return merge_data
+
+
+def MergeMultipleRegressionClassify(_predict_folder_path, _raster_reclassify_path, _output_merge_folder,
+                                    bins, ctype,
+                                    _dem_type=None,
+                                    _year=None):
+    """
+    融合得到的N个XGBOOST结果，需要搭配IntegrationXGBoostRegression函数使用
+    :param _dem_type:
+    :param _year:
+    :param _output_merge_folder:
+    :param _predict_folder_path: 预测结果的源文件夹
+    :param _raster_reclassify_path: 分类依据文件
+    :return: merge_data numpy.array格式，用于传递后续的分析.
+    """
+    print('正在执行MergeRegressionClassify...')
+    path_list, file_name_list = PGF.PathGetFiles(_predict_folder_path, '.tif')
+    files_prefix = file_name_list[0].rsplit('_', 1)[0]
+    raster_rr = {}
+    raster_data = {}
+    print('正在读取需要融合的栅格...')
+    for index, item in enumerate(file_name_list):
+        if bins in item and ctype in item:
+            print(path_list[index])
+            raster_rr[item] = RR.ReadRaster(path_list[index])
+            raster_data[item] = raster_rr[item].ReadRasterFile()
+    raster_reclassify_rr = RR.ReadRaster(_raster_reclassify_path)
+    raster_reclassify_data = raster_reclassify_rr.ReadRasterFile()
+    print(raster_data.keys())
+    print('正在匹配融合...')
+    merge_data = np.empty(raster_reclassify_data.shape)
+    for i in range(raster_reclassify_data.shape[0]):
+        for j in range(raster_reclassify_data.shape[1]):
+            merge_data[i][j] = raster_data[f'{bins}_{ctype}_{int(raster_reclassify_data[i][j])}'][i][j]
+    print('正在输出结果...')
+    if _dem_type and _year is not None:
+        output_path = os.path.join(_output_merge_folder, f'MergePredictResult_{_dem_type}_{_year}_{bins}_{ctype}.tif')
+    else:
+        output_path = os.path.join(_output_merge_folder, f'MergePredictResult_{bins}_{ctype}.tif')
     raster_reclassify_rr.WriteRasterFile(merge_data, output_path)
     return merge_data
 
@@ -260,7 +427,105 @@ def AnalysisResult(_shape_path: object, _raster_predict_path: object, _raster_re
     return None
 
 
-def MaskRegionAnalysis(_input_shape_path, _input_raster_path, _output_raster_folder, _raster_reclassify_path,
+def AnalysisMultipleResult(_shape_path: object, _raster_predict_path: object, _raster_reclassify_path: object,
+                           _bin_level: object, _ctype_item: object, _year: object,
+                           _output_csv_folder=None) -> object:
+    """
+    该函数是针对点结果进行统计分析，包括分析MAE RMSE STD等信息，最后输出成一个csv表格，CSV可以记录年份和Bin Lv但是无法记录DEM。
+    :param _dem_type:
+    :param _shape_path: point点路径，
+    :param _raster_predict_path: 预测结果数据路径
+    :param _raster_reclassify_path: 分类栅格数据路径
+    :param _bin_level: 指名等级，需要包含在shape文件的列中
+    :param _year: 指名年份，int
+    :param _output_csv_folder: 输出csv文件夹路径
+    :return: None
+    """
+    # 分析讲究几个部分：
+    # 1. 分箱分析RMSE、MAE、STD，总体分析MAE MSE RMSE STD
+    # 2. 年变化，结果的dh，直接除以年份吧
+    print('正在执行AnalysisResult...')
+    point_rsdf = RSDF.ReadPoint2DataFrame(_shape_path)
+    point_df = point_rsdf.ReadShapeFile()
+    bin_list = ['B50', 'B100', 'B150', 'B200']
+    ctype_list_abb = ['M5', 'M10', 'P5', 'P10', 'R5', 'R10']
+    df_field = []
+    for i in bin_list:
+        for j in ctype_list_abb:
+            df_field.append(f'{i}_{j}')
+    point_df[df_field] = point_df[df_field].astype('float32')
+    predict_rr = RR.ReadRaster(_raster_predict_path)
+    predict_data = predict_rr.ReadRasterFile()
+    print(predict_rr.raster_ds_geotrans)
+    point_row, point_colum = point_rsdf.PointMatchRasterRowColumn(predict_rr.raster_ds_geotrans)
+    predict_point_value = RR.SearchRasterRowColumnData(point_row, point_colum, _raster_ds_path=_raster_predict_path)
+    point_df = pd.concat([point_df, pd.DataFrame(predict_point_value, columns=['Predict_DH'])], axis=1)
+
+    delta_elevation_dict = dict()
+    predict_dict = dict()
+    for i in range(int(min(point_df[_bin_level])), int(max(point_df[_bin_level])) + 1):
+        delta_elevation_dict[i] = []
+        predict_dict[i] = []
+    for index, item in enumerate(point_df[_bin_level]):
+        delta_elevation_dict[int(item)].append(point_df[f'DH_{_ctype_item}'][index])
+        predict_dict[int(item)].append(point_df['Predict_DH'][index])
+
+    bin_rmse = []
+    bin_mae = []
+    bin_predict_mean = []
+    bin_origin_mean = []
+    bin_predict_std = []
+    bin_origin_std = []
+    for i in delta_elevation_dict:
+        # 预测和实际结果的RMSE
+        bin_rmse.append(EA.rmse(delta_elevation_dict[i], predict_dict[i]))
+        # 预测和实际结果的MAE
+        bin_mae.append(EA.mae(delta_elevation_dict[i], predict_dict[i]))
+        # 实际结果的标准差
+        bin_origin_std.append(np.std(delta_elevation_dict[i]))
+        # 预测结果的标准差
+        bin_predict_std.append(np.std(predict_dict[i]))
+        # 预测结果的分箱均值
+        bin_predict_mean.append(np.mean(predict_dict[i]) / (_year - 2000))
+        # 实际结果的分箱均值
+        bin_origin_mean.append(np.mean(delta_elevation_dict[i]) / (_year - 2000))
+    total_mae = EA.mae(point_df[f'DH_{_ctype_item}'], point_df['Predict_DH'])
+    total_mse = EA.mse(point_df[f'DH_{_ctype_item}'], point_df['Predict_DH'])
+    total_rmse = EA.rmse(point_df[f'DH_{_ctype_item}'], point_df['Predict_DH'])
+
+    print('分箱误差为:')
+    for index, item in enumerate(bin_rmse):
+        print(
+            f'Bin:{index + 1}----RMSE:{item}, MAE:{bin_mae[index]}, Predict_STD:{bin_predict_std[index]}, Origin_DH_STD:{bin_origin_std[index]}')
+        print(f'Predict_Mean:{bin_predict_mean[index]},Origin_Mean:{bin_origin_mean[index]}')
+    print(f"总体误差为:"
+          f"MAE:{total_mae}, RMSE:{total_rmse}")
+
+    if _output_csv_folder is not None:
+        csv_dict = dict(
+            Bin_MAE=bin_mae,
+            Total_MAE=total_mae,
+            Bin_RMSE=bin_rmse,
+            Total_RMSE=total_rmse,
+            Bin_Origin_STD=bin_origin_std,
+            Bin_Predict_STD=bin_predict_std,
+            Bin_Origin_Mean=bin_origin_mean,
+            Total_Origin_Mean=np.mean(bin_origin_mean),
+            Bin_Predict_Mean=bin_predict_mean,
+            Total_Predict_Mean=np.mean(bin_predict_mean),
+        )
+        csv_df = pd.DataFrame(csv_dict)
+        times = time.strftime('%Y_%m_%d_%H%M%S', time.localtime())
+        if os.path.exists(_output_csv_folder):
+            shutil.rmtree(_output_csv_folder)
+            print('正在删除已存在CSV文件夹路径')
+        os.makedirs(_output_csv_folder)
+        csv_path = os.path.join(_output_csv_folder, f'{_bin_level}_{times}.csv')
+        csv_df.to_csv(csv_path)
+    return None
+
+
+def MaskRegionAnalysis(_input_shape_path, _input_raster_path, _output_raster_path, _raster_reclassify_path,
                        _dem_type,
                        _year,
                        _bin_level,
@@ -270,7 +535,7 @@ def MaskRegionAnalysis(_input_shape_path, _input_raster_path, _output_raster_fol
     :param _dem_type:
     :param _input_shape_path: 输入裁剪的范围文件
     :param _input_raster_path: 输入裁剪的结果文件 predict
-    :param _output_raster_folder: 输出文件的文件夹路径
+    :param _output_raster_path: 输出文件的文件夹路径
     :param _raster_reclassify_path: 输入的栅格文件路径
     :param _year: 指定运行的年份日期
     :param _bin_level: 高程箱个数字段
@@ -281,10 +546,12 @@ def MaskRegionAnalysis(_input_shape_path, _input_raster_path, _output_raster_fol
     # 先掩膜结果，之后分区统计结果
     # 妈的，还要传递保存的路径
     # 掩膜Predict文件
-    mask_path = RSMR.RasterClipByShape(_input_shape_path, _input_raster_path, _output_raster_folder)
+    mask_path = RSMR.RasterClipByShape(_input_shape_path, _input_raster_path, _output_raster_path)
     # 掩膜分类文件
+    mask_output_path = os.path.join(os.path.splitext(_output_raster_path)[0], 'Reclassify')
+    PFO.MakeFolder(mask_output_path)
     mask_reclassify_path = RSMR.RasterClipByShape(_input_shape_path, _raster_reclassify_path,
-                                                  os.path.join(_output_raster_folder, 'Reclassify'))
+                                                  os.path.join(mask_output_path, f'Reclassify.tif'))
     # 读取分类文件
     reclassify_rr = RR.ReadRaster(mask_reclassify_path)
     reclassify_data = reclassify_rr.ReadRasterFile()
@@ -319,6 +586,66 @@ def MaskRegionAnalysis(_input_shape_path, _input_raster_path, _output_raster_fol
     return None
 
 
+def MaskMultipleRegionAnalysis(_input_shape_path, _input_raster_path, _output_raster_path, _raster_reclassify_path,
+                               _year,
+                               _bin_level,
+                               _threshold=50, _output_csv_folder=None):
+    """
+    掩膜输入的两个栅格，并分级统计均值。
+    :param _dem_type:
+    :param _input_shape_path: 输入裁剪的范围文件
+    :param _input_raster_path: 输入裁剪的结果文件 predict
+    :param _output_raster_path: 输出文件的文件夹路径
+    :param _raster_reclassify_path: 输入的栅格文件路径
+    :param _year: 指定运行的年份日期
+    :param _bin_level: 高程箱个数字段
+    :param _threshold: 过滤阈值
+    :param _output_csv_folder: 输出的csv文件夹路径
+    :return: None
+    """
+    # 先掩膜结果，之后分区统计结果
+    # 妈的，还要传递保存的路径
+    # 掩膜Predict文件
+    mask_path = RSMR.RasterClipByShape(_input_shape_path, _input_raster_path, _output_raster_path)
+    # 掩膜分类文件
+    mask_output_path = os.path.join(os.path.splitext(_output_raster_path)[0], f'Reclassify_{_bin_level}')
+    PFO.MakeFolder(mask_output_path)
+    mask_reclassify_path = RSMR.RasterClipByShape(_input_shape_path, _raster_reclassify_path,
+                                                  os.path.join(mask_output_path, f'Reclassify_{_bin_level}.tif'))
+    # 读取分类文件
+    reclassify_rr = RR.ReadRaster(mask_reclassify_path)
+    reclassify_data = reclassify_rr.ReadRasterFile()
+    reclassify_data_list = reclassify_data.reshape(-1)
+    # 读取掩膜后的结果
+    mask_rr = RR.ReadRaster(mask_path)
+    mask_data = mask_rr.ReadRasterFile()
+    mask_data_list = mask_data.reshape(-1)
+
+    predict_dict = dict()
+    for i in range(int(min(reclassify_data_list)), int(max(reclassify_data_list)) + 1):
+        predict_dict[i] = []
+    for index, item in enumerate(reclassify_data_list):
+        if mask_data_list[index] != 0 and np.abs(mask_data_list[index]) <= _threshold:
+            predict_dict[item].append(mask_data_list[index])
+
+    bin_mean = []
+    for i in predict_dict:
+        bin_mean.append(np.mean(predict_dict[i]) / (_year - 2000))
+    new_bin_mean = [i for i in bin_mean if np.isnan(i) == False]
+    if _output_csv_folder is not None:
+        csv_dict = dict(
+            Bin_Level=[i for i in range(int(min(reclassify_data_list)), int(max(reclassify_data_list)) + 1)],
+            Means=bin_mean,
+        )
+        csv_df = pd.DataFrame(csv_dict)
+        csv_df.loc[len(csv_df.index)] = ['TotalMean', np.mean(new_bin_mean)]
+        times = time.strftime('%Y_%m_%d_%H%M%S', time.localtime())
+        csv_path = os.path.join(_output_csv_folder,
+                                f'MaskAnalysis_{_bin_level}_threshold{_threshold}_{times}.csv')
+        csv_df.to_csv(csv_path)
+    return None
+
+
 def MeanBinsRaster(_raster_folder, _output_path):
     """
     将多个栅格计算平均值，并输出
@@ -328,7 +655,7 @@ def MeanBinsRaster(_raster_folder, _output_path):
     """
     raster_paths_list, raster_files_list = PGF.PathGetFiles(_raster_folder, '.tif')
     raster_means_list = []
-    dem_list = ['NASA', 'SRTM']
+    dem_list = ['SRTM']
     # years_list = [i for i in range(2019, 2023)]
     years_list = [2019]
     for dem_index, dem_item in enumerate(dem_list):
@@ -350,9 +677,48 @@ def MeanBinsRaster(_raster_folder, _output_path):
             for i in range(len(raster_means_list)):
                 mean_data += raster_dict[i]
             mean_data = mean_data / len(raster_means_list)
-            output_path = os.path.join(_output_path, f'{dem_item}_{years_item}')
+            output_path = os.path.join(_output_path, f'{dem_item}_{years_item}.tif')
             example_rr.WriteRasterFile(mean_data, output_path, _nodata=0)
             del example_rr
+    return None
+
+
+def MeanBinsMultipleRaster(_raster_folder, _output_path):
+    """
+    将多个栅格计算平均值，并输出
+    :param _raster_folder: 栅格文件夹
+    :param _output_path: 输出栅格的路径
+    :return:
+    """
+    raster_paths_list, raster_files_list = PGF.PathGetFiles(_raster_folder, '.tif')
+    bin_list = ['B50', 'B100', 'B150', 'B200']
+    bin_num_list = ['50', '100', '150', '200']
+    ctype_list_abb = ['M5', 'M10', 'P5', 'P10', 'R5', 'R10']
+    ctype_list = ['Minus5', 'Minus10', 'Plus5', 'Plus10', 'Random5', 'Random10']
+    # years_list = [i for i in range(2019, 2023)]
+    years_list = [2019]
+    for ctype_index, ctype_item in enumerate(ctype_list_abb):
+        raster_means_list = []
+        for files_index, files_item in enumerate(raster_files_list):
+            if ctype_item in files_item:
+                print(f'已找到{files_item}的Raster文件Path:{raster_paths_list[files_index]}')
+                raster_means_list.append(raster_paths_list[files_index])
+        print(f'开始计算平均{ctype_item}...')
+        raster_dict = dict()
+        for index, item in enumerate(raster_means_list):
+            raster_dict[index] = None
+            raster_rr = RR.ReadRaster(item)
+            raster_data = raster_rr.ReadRasterFile()
+            raster_dict[index] = raster_data
+        example_rr = RR.ReadRaster(raster_means_list[0])
+        example_data = example_rr.ReadRasterFile()
+        mean_data = np.zeros(example_data.shape)
+        for i in range(len(raster_means_list)):
+            mean_data += raster_dict[i]
+        mean_data = mean_data / len(raster_means_list)
+        output_path = os.path.join(_output_path, f'SRTM_{ctype_item}.tif')
+        example_rr.WriteRasterFile(mean_data, output_path, _nodata=0)
+        del example_rr
     return None
 
 
@@ -435,6 +801,66 @@ def YearChangeAnalysis(_raster_folder, _reclassify_path, _output_raster_folder, 
             _output_csv_path = os.path.join(_output_csv_folder, f'{_mode}_{dem_item}_th{_threshold}_{times}.csv')
         csv_df.to_csv(_output_csv_path)
     del reclassify_rr
+    return None
+
+
+def YearChangeMultipleAnalysis(_raster_folder, _reclassify_folder, _output_raster_folder, _output_csv_folder,
+                               _threshold=50):
+    raster_paths_list, raster_files_list = PGF.PathGetFiles(_raster_folder, '.tif')
+    reclassify_path_list, reclassify_name_list = PGF.PathGetFiles(_reclassify_folder, '.tif')
+    ctype_list_abb = ['M5', 'M10', 'P5', 'P10', 'R5', 'R10']
+    ctype_list = ['Minus5', 'Minus10', 'Plus5', 'Plus10', 'Random5', 'Random10']
+    total_means = []
+
+    for ctype_index, ctype_item in enumerate(ctype_list_abb):
+        reclassify_path = None
+        for reclassify_name_index, reclassify_name_item in enumerate(reclassify_name_list):
+            if f'Reclassify_B50_{ctype_item}' in reclassify_name_item:
+                reclassify_path = reclassify_path_list[reclassify_name_index]
+        reclassify_rr = RR.ReadRaster(reclassify_path)
+        reclassify_data = reclassify_rr.ReadRasterFile()
+
+        predict_path = None
+        for files_index, files_item in enumerate(raster_files_list):
+            if ctype_item in files_item:
+                print(f'已找到{files_item}的Raster文件Path:{raster_paths_list[files_index]}')
+                predict_path = raster_paths_list[files_index]
+        raster_rr = RR.ReadRaster(predict_path)
+        raster_data = raster_rr.ReadRasterFile()
+        # 声明分级字典，用于储存年变化量
+        bins_dict = dict()
+        for i in range(int(np.min(reclassify_data)), int(np.max(reclassify_data) + 1)):
+            bins_dict[i] = []
+        # 年变化之间做差
+        for y in range(reclassify_rr.raster_ds_y_size):
+            for x in range(reclassify_rr.raster_ds_x_size):
+                if np.abs(raster_data[y][x]) <= _threshold:
+                    bins_dict[int(reclassify_data[y][x])].append(raster_data[y][x])
+        bin_mean = []
+        for i in bins_dict:
+            bin_mean.append(np.mean(bins_dict[i]) / (2020 - 2000))
+        bin_means_nonan = [i for i in bin_mean if np.isnan(i) == False and i != 0]
+        csv_dict = {
+            'Year_Mean': bin_means_nonan
+        }
+        output_raster_path = os.path.join(_output_raster_folder, f"Mean_{ctype_item}.tif")
+        reclassify_rr.WriteRasterFile(raster_data / 20, output_raster_path, _nodata=0)
+        del raster_rr
+
+        bin_mean = []
+        bin_std = []
+        for i in bins_dict:
+            bin_mean.append(np.mean(bins_dict[i]))
+            bin_std.append(np.std(bins_dict[i]))
+        bin_means_nonan = [i for i in bin_mean if np.isnan(i) == False and i != 0]
+        bin_stds_nonan = [i for i in bin_std if np.isnan(i) == False and i != 0]
+        csv_dict['Bin_Mean'] = bin_means_nonan
+        csv_dict['Bin_Std'] = bin_stds_nonan
+        csv_df = pd.DataFrame(csv_dict)
+        times = time.strftime('%Y_%m_%d_%H%M%S', time.localtime())
+        _output_csv_path = os.path.join(_output_csv_folder, f'th{_threshold}_{times}.csv')
+        csv_df.to_csv(_output_csv_path)
+        del reclassify_rr
     return None
 
 
@@ -528,6 +954,82 @@ def ElevationUncertaintyAnalysis(_raster_folder: object, _raster_reclassify_path
         df.to_csv(output_path)
     return None
 
+
+def ElevationUncertaintyAnalysisNewFormula(_raster_folder: object, _raster_reclassify_path: object, _point_path: object,
+                                           _output_csv_folder: object) -> object:
+    # 这里不再做差，就除以年份
+    raster_paths_list, raster_files_list = PGF.PathGetFiles(_raster_folder, '.tif')
+    dem_list = ['SRTM']
+    reclassify_rr = RR.ReadRaster(_raster_reclassify_path)
+    reclassify_data = reclassify_rr.ReadRasterFile()
+    point_rsdf = RSDF.ReadPoint2DataFrame(_point_path)
+    point_df = point_rsdf.ReadShapeFile()
+    # 统计每个bin level中有多少个点。
+    bin_length_list = []
+    for i in range(int(point_df['Bin_50'].min()), int(point_df['Bin_50'].max()) + 1):
+        temp_df = point_df[point_df["Bin_50"] == float(i)]
+        bin_length_list.append(temp_df.shape[0])
+    bin_length_list.insert(0, 1)
+    print(len(bin_length_list))
+
+    for dem_index, dem_item in enumerate(dem_list):
+        df = pd.DataFrame()
+        for file_index, file_item in enumerate(raster_files_list):
+            if dem_item in file_item:
+                print(f'已找到{file_item}的Raster文件Path:{raster_paths_list[file_index]}')
+                file_path = raster_paths_list[file_index]
+                # 读取DH数据
+                raster_rr = RR.ReadRaster(file_path)
+                raster_data = raster_rr.ReadRasterFile()
+                # 按照reclassify划分data分级
+                bins_dict = dict()
+                for i in range(int(np.min(reclassify_data)), int(np.max(reclassify_data) + 1)):
+                    bins_dict[i] = []
+                for y in range(reclassify_rr.raster_ds_y_size):
+                    for x in range(reclassify_rr.raster_ds_x_size):
+                        bins_dict[int(reclassify_data[y][x])].append(raster_data[y][x])
+                # 开始统计分析
+                # 计算标准差
+                bins_means = []
+                bins_stds = []
+                bins_3stds = []
+                bins_ce = []
+                bins_filter3stds_means = []
+                bins_dh = []
+                bin_dh = []
+                print(len(bins_dict))
+                for i in bins_dict:
+                    bins_means.append(np.mean(bins_dict[i]))
+                    std = np.std(bins_dict[i])
+                    bins_stds.append(std)
+                    bins_3stds.append(std * 3)
+                    bins_ce.append(np.sqrt(np.power(np.std(bins_dict[i]), 2)))
+                    temp_list = []
+                    for j in bins_dict[i]:
+                        if np.abs(j) < std * 3:
+                            temp_list.append(j)
+                    bins_filter3stds_means.append(np.mean(temp_list))
+                    bins_dh.append(20 * 20 / bin_length_list[i] * len(bins_dict[i]) / 965378)
+                    # 下面这个是输出每个bins像元的数量 i=0 是nodata
+                    # print(len(bins_dict[i]))
+                year_item = 2019
+                csv_dict = {
+                    'Bins': [i for i in range(int(np.min(reclassify_data)), int(np.max(reclassify_data) + 1))],
+                    f'{year_item}_means': bins_means,
+                    f'{year_item}_stds': bins_stds,
+                    f'{year_item}_3stds': bins_3stds,
+                    f'{year_item}_ce': bins_ce,
+                    f'{year_item}_filter3stds_means': bins_filter3stds_means,
+                    f'{year_item}_dh': bins_dh,
+                }
+                csv_df = pd.DataFrame(csv_dict)
+                df = pd.concat([df, csv_df], axis=1)
+        times = time.strftime('%Y_%m_%d_%H%M%S', time.localtime())
+        output_path = os.path.join(_output_csv_folder, f'{dem_item}_UncertaintyAnalysis_{times}.csv')
+        df.to_csv(output_path)
+    return None
+
+
 if __name__ == '__main__':
     # shape_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20230916\1_FilterOutliers\1_FilterOutliers\NASA_2019_Bin_50\NASA_2019_Bin_50.shp'
     # raster_folder_path = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20230916\1_RasterData'
@@ -573,8 +1075,8 @@ if __name__ == '__main__':
     # nasa_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\0_BaseData\BaseDEMProductions\NASA'
     # nasa_path_list, nasa_files_list = PGFiles.PathGetFiles(nasa_folder, '.tif')
     # # SRTM数据
-    # srtm_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\0_BaseData\BaseDEMProductions\SRTM'
-    # srtm_path_list, srtm_files_list = PGFiles.PathGetFiles(srtm_folder, '.tif')
+    # dem_productions_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\0_BaseData\BaseDEMProductions\SRTM'
+    # dem_productions_path_list, srtm_name_list = PGFiles.PathGetFiles(dem_productions_folder, '.tif')
     # # 公共数据
     # common_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_20231004\0_BaseData\BaseDEMProductions\CommonData'
     # common_path_list, common_files_list = PGFiles.PathGetFiles(common_folder, '.tif')
@@ -667,19 +1169,19 @@ if __name__ == '__main__':
     # #                         raster_reclassify_path = nasa_path_list[dem_productions_index]
     # #             elif dem_type == 'SRTM' or 'srtm':
     # #                 print('正在寻找SRTM的相关DEM产品路径...')
-    # #                 for dem_productions_index, dem_productions_item in enumerate(srtm_files_list):
+    # #                 for dem_productions_index, dem_productions_item in enumerate(srtm_name_list):
     # #                     if 'Slope' in dem_productions_item:
     # #                         print(f'已经找到{dem_type}的Slope文件.')
-    # #                         raster_slope_path = srtm_path_list[dem_productions_index]
+    # #                         raster_slope_path = dem_productions_path_list[dem_productions_index]
     # #                     elif 'Aspect' in dem_productions_item:
     # #                         print(f'已经找到{dem_type}的Aspect文件.')
-    # #                         raster_aspect_path = srtm_path_list[dem_productions_index]
+    # #                         raster_aspect_path = dem_productions_path_list[dem_productions_index]
     # #                     elif 'Undulation' in dem_productions_item:
     # #                         print(f'已经找到{dem_type}的Undulation文件.')
-    # #                         raster_undulation_path = srtm_path_list[dem_productions_index]
+    # #                         raster_undulation_path = dem_productions_path_list[dem_productions_index]
     # #                     elif 'Reclassify' in dem_productions_item and f'_{bin_item}' in dem_productions_item:
     # #                         print(f'已经找到{dem_type}的Reclassify文件,等级{bin_item}.')
-    # #                         raster_reclassify_path = srtm_path_list[dem_productions_index]
+    # #                         raster_reclassify_path = dem_productions_path_list[dem_productions_index]
     # #             else:
     # #                 print('dem_type存在错误，请检查基准DEM的命名。')
     # #
@@ -724,10 +1226,10 @@ if __name__ == '__main__':
     # #                         raster_reclassify_path = nasa_path_list[dem_productions_index]
     # #             elif dem_item == 'SRTM':
     # #                 print('正在寻找SRTM的相关DEM产品路径...')
-    # #                 for dem_productions_index, dem_productions_item in enumerate(srtm_files_list):
+    # #                 for dem_productions_index, dem_productions_item in enumerate(srtm_name_list):
     # #                     if 'Reclassify' in dem_productions_item and f'_{bin_item}' in dem_productions_item:
     # #                         print(f'已经找到{dem_type}的Reclassify文件,等级{bin_item}.')
-    # #                         raster_reclassify_path = srtm_path_list[dem_productions_index]
+    # #                         raster_reclassify_path = dem_productions_path_list[dem_productions_index]
     # #
     # #             MergeRegressionClassify(predict_folder, raster_reclassify_path, merge_output_folder, _dem_type=dem_item,
     # #                                     _year=year_item)
@@ -781,10 +1283,10 @@ if __name__ == '__main__':
     #                         break
     #                     else:
     #                         print(f'ERROR: 不存在符合条件为:{dem_item} {year_item} {bin_item}的Point Shape文件.')
-    #                 for dem_productions_index, dem_productions_item in enumerate(srtm_files_list):
+    #                 for dem_productions_index, dem_productions_item in enumerate(srtm_name_list):
     #                     if 'Reclassify' in dem_productions_item and f'_{bin_item}' in dem_productions_item:
     #                         print(f'已经找到{dem_item}的Reclassify文件,等级{bin_item}.')
-    #                         raster_reclassify_path = srtm_path_list[dem_productions_index]
+    #                         raster_reclassify_path = dem_productions_path_list[dem_productions_index]
     #                 for merge_predict_index, merge_predict_item in enumerate(merge_predict_files_list):
     #                     if dem_item in merge_predict_item and str(
     #                             year_item) in merge_predict_item and f'_{bin_item}' in merge_predict_item:

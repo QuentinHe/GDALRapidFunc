@@ -28,7 +28,7 @@ if __name__ == '__main__':
     """
     下面是一张一张输出
     """
-    # for index, item in enumerate(srtm_path_list):
+    # for index, item in enumerate(dem_productions_path_list):
     #     input_rsdf = RPDF.ReadPoint2DataFrame(item)
     #     input_df = input_rsdf.ReadShapeFile()
     #     filter_list = []
@@ -48,7 +48,7 @@ if __name__ == '__main__':
     #         for i in np.arange(int(boxs_num)):
     #             print(f'箱子{i + 1} --- Max:{boxs_max[i]}; Min:{boxs_min[i]}')
     #         filter_list.append(fliers_nums)
-    #     filter_csv_path = os.path.join(output_folder, f'{srtm_name_list[index]}_Filters.csv')
+    #     filter_csv_path = os.path.join(output_folder, f'{dem_productions_name_list[index]}_Filters.csv')
     #     filter_df = pd.DataFrame([filter_list], columns=bin_list)
     #     filter_df.to_csv(filter_csv_path)
     """

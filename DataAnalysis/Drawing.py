@@ -117,7 +117,7 @@ def DrawingBoxs(_y_data, _x_data, _x_axis_label, _y_axis_label, _title='Boxplot'
     :param _y_axis_label: y轴名称
     :return: None
     """
-    plt.figure(figsize=(6, 4))
+    plt.figure(figsize=(6, 4), dpi=300)
     plt.rc('font', family='Times New Roman', size=12)
     plt.grid(True)
     _bp = plt.boxplot(_y_data,
@@ -129,13 +129,14 @@ def DrawingBoxs(_y_data, _x_data, _x_axis_label, _y_axis_label, _title='Boxplot'
                                   "markeredgecolor": 'gray'},
                       labels=_x_data)
     # plt.title(_title, fontsize=16)
-    plt.xticks(fontsize=16)
-    plt.yticks(fontsize=16)
-    plt.xlabel(_x_axis_label, fontsize=16)
-    plt.ylabel(_y_axis_label, fontsize=16)
+    plt.xticks(fontsize=18)
+    plt.yticks(fontsize=18)
+    plt.xlabel(_x_axis_label, fontsize=20, weight='bold')
+    plt.ylabel(_y_axis_label, fontsize=20, weight='bold')
     outliers_num = np.sum([len(item.get_ydata()) for item in _bp['fliers']])
     y_list = [min(i) for i in _y_data]
-    plt.text(np.max(list(_x_data))*0.7, np.min(y_list), f'Outliers:{outliers_num}', fontsize=16,style='italic', weight='bold',verticalalignment='center')
+    plt.text(np.max(list(_x_data)) * 0.7, np.min(y_list), f'Outliers:{outliers_num}', fontsize=20, style='italic',
+             weight='bold', verticalalignment='center')
     plt.tight_layout()
     if _save_path:
         plt.savefig(_save_path)

@@ -18,6 +18,7 @@ if __name__ == '__main__':
     result_df = pd.read_excel(excel_path, sheet_name='Modify')
     month_labels = [i for i in range(1, 13)]
     plt.rc('font', family='Times New Roman', size=14)
+    plt.figure(dpi=300)
     plt.plot(month_labels, list(result_df.iloc[0])[1:], c='#ff7f0e', linestyle='--', marker='o', markersize=5,
              markeredgewidth=1.5,
              label=result_df['Name'][0])
@@ -30,10 +31,13 @@ if __name__ == '__main__':
     ys = m(xs)
     plt.plot(xs, ys, c='#00ccff', linewidth=2.5, label=result_df['Name'][2])
     plt.text(x=11, y=0.75, s='A=1.1', ha='center', va='center',
-             fontdict={'fontsize': 18, 'color': '#c70039'})
-    plt.xticks(ticks=month_labels)
-    plt.xlabel('Month', fontsize=16)
-    plt.ylabel('Glacier Elevation Change(m)', fontsize=16)
-    plt.legend(prop={'size': 14})
+             fontdict={'fontsize': 22, 'color': '#c70039'})
+    plt.xticks(ticks=month_labels, fontsize=22)
+    plt.yticks(fontsize=22)
+    plt.xlabel('Month', fontsize=22)
+    plt.ylabel('Glacier Elevation Change(m)', fontsize=22)
+    plt.legend(prop={'size': 14}, frameon=False)
     plt.tight_layout()
+    plt.savefig(
+        r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_Final_20231018\1_Cartography\2_Method&Data\20231207_1_RecoverFitting.jpeg')
     plt.show()

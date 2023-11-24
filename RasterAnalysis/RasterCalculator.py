@@ -16,52 +16,37 @@ os.environ['PROJ_LIB'] = 'D:/Mambaforge/envs/mgdal_env/Library/share/proj'
 os.environ['GDAL_DATA'] = 'D:/Mambaforge/envs/mgdal_env/Library/share'
 
 
-def RasterReduce(_main_raster_path, _output_raster_folder, *_other_raster_path_tuple, _reduced_num=None,
-                 _reduced_raster_path=None):
-    print('正在执行减法计算'.center(30, '*'))
-    reduced_num = None
-    if _reduced_num:
-        # 说明raster除以一个常数
-        reduced_num = _reduced_num
-        print(f'被减数为常数{reduced_num}')
-    elif _reduced_raster_path:
-        _reduced_rr = RR.ReadRaster(_reduced_raster_path)
-        _reduced_data = _reduced_rr.ReadRasterFile()
-        reduced_num = _reduced_data
-        print(f'被减数为矩阵{reduced_num.shape()}')
-    else:
-        print('_reduced_num和_reduced_raster_path均为None,无法执行运算.')
-        return None
-    if reduced_num:
-        print('正在计算...')
+def RasterReduce(_main_raster_path, _output_folder, *other_raster_path, _output_name='RasterSubtractResult'):
+    if other_raster_path:
         main_rr = RR.ReadRaster(_main_raster_path)
         main_data = main_rr.ReadRasterFile()
-        main_result = main_data - reduced_num
-        main_result_name = os.path.splitext(os.path.split(_main_raster_path)[1])[0]
-        main_result_output_path = os.path.join(_output_raster_folder, f'Reduce_{main_result_name}.tif')
-        main_rr.WriteRasterFile(main_result, main_result_output_path, _nodata=0)
-        if _other_raster_path_tuple:
-            other_raster_data_list = []
-            for index, item in enumerate(_other_raster_path_tuple):
-                other_rr = RR.ReadRaster(item)
-                other_data = other_rr.ReadRasterFile()
-                other_raster_data_list.append(other_data)
-            for index, item in enumerate(other_raster_data_list):
-                other_result = item - reduced_num
-                other_result_name = os.path.splitext(os.path.split(_other_raster_path_tuple[index])[1])[0]
-                other_result_output_path = os.path.join(_output_raster_folder, f'Reduce_{other_result_name}.tif')
-                main_rr.WriteRasterFile(other_result, other_result_output_path, _nodata=0)
+        other_raster_data_list = []
+        for index, item in enumerate(other_raster_path):
+            other_rr = RR.ReadRaster(item)
+            other_data = other_rr.ReadRasterFile()
+            other_raster_data_list.append(other_data)
+        result = main_data
+        for index, item in enumerate(other_raster_data_list):
+            result -= item
+        if os.path.exists(_output_folder):
+            shutil.rmtree(_output_folder)
+        else:
+            print('输出文件夹不存在，正在创建.')
+        os.makedirs(_output_folder)
+        output_result_path = os.path.join(_output_folder, f'{_output_name}.tif')
+        main_rr.WriteRasterFile(result, output_result_path, _nodata=0)
+    else:
+        print('ERROR:未输入其他相减Raster.'.center(30, '*'))
     return None
 
 
 def RasterAdd(_main_raster_path, _output_folder, *_other_raster_path_tuple, _output_name='RasterAddResult'):
     if _other_raster_path_tuple:
-        # print(f'main:{_main_raster_path}')
         main_rr = RR.ReadRaster(_main_raster_path)
         main_data = main_rr.ReadRasterFile()
         other_raster_data_list = []
         for index, item in enumerate(_other_raster_path_tuple):
-            # print(f'item:{item}')
+            print(f'item:{item}')
             other_rr = RR.ReadRaster(item)
             other_data = other_rr.ReadRasterFile()
             other_raster_data_list.append(other_data)
@@ -108,7 +93,7 @@ def RasterDivide(_main_raster_path, _output_raster_folder, *_other_raster_path_t
             for index, item in enumerate(other_raster_data_list):
                 other_result = item / denominator
                 other_result_name = os.path.splitext(os.path.split(_other_raster_path_tuple[index])[1])[0]
-                other_result_output_path = os.path.join(_output_raster_folder, f'Divide_{other_result_name}.tif')
+                other_result_output_path = os.path.join(_output_raster_folder, f'{other_result_name}.tif')
                 main_rr.WriteRasterFile(other_result, other_result_output_path, _nodata=0)
     return None
 
