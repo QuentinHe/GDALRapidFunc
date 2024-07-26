@@ -17,7 +17,7 @@ if __name__ == '__main__':
     elevation_df = pd.read_excel(excel_path, sheet_name='Elevation')
     slope_df = pd.read_excel(excel_path, sheet_name='Slope')
     undulation_df = pd.read_excel(excel_path, sheet_name='Undulation')
-    aspect_df = pd.read_excel(excel_path, sheet_name='Aspect')
+    aspect_df = pd.read_excel(excel_path, sheet_name='AspectL')
 
     # plt.style.use('ggplot')
     plt.rc('font', family='Times New Roman', size=12)

@@ -120,7 +120,7 @@ def IntegrationXGBoostRegression(_shape_path, _x_var, _y_var, _bin_level,
         x_train, x_test, y_train, y_test, = model_selection.train_test_split(x_df, y_df, train_size=0.7)
         output_path = os.path.join(_output_path, f'{_bin_level}_{i}.tif')
         output_name = _output_path.rsplit('\\', 1)[1] + f'{_bin_level}_{i}'
-        output_csv_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_Supplement_20240513\17_XGBoostCSV'
+        output_csv_folder = r'E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Test_Supplement_20240516\8_TS_XGBoostData_CSV'
         output_csv_path = os.path.join(output_csv_folder, output_name)
         PFO.MakeFolder(output_csv_path)
         _predict_data = PXGBR.XGBoostRegression(x_train, y_train, x_test, y_test, predict_df,
@@ -354,8 +354,10 @@ def AnalysisResult(_shape_path: object, _raster_predict_path: object, _raster_re
     print('正在执行AnalysisResult...')
     point_rsdf = RSDF.ReadPoint2DataFrame(_shape_path)
     point_df = point_rsdf.ReadShapeFile()
-    point_df[['Bin_50', 'Bin_100', 'Bin_150', 'Bin_200', 'Delta_Ele']] = point_df[
-        ['Bin_50', 'Bin_100', 'Bin_150', 'Bin_200', 'Delta_Ele']].astype('float32')
+    point_df[['Bin_50', 'Bin_100', 'Bin_150', 'Bin_200', 'Delta_Ele', 'M5', 'M10', 'P5', 'P10', 'R5', 'R10']] = \
+    point_df[
+        ['Bin_50', 'Bin_100', 'Bin_150', 'Bin_200', 'Delta_Ele', 'M5', 'M10', 'P5', 'P10', 'R5', 'R10']].astype(
+        'float32')
     predict_rr = RR.ReadRaster(_raster_predict_path)
     predict_data = predict_rr.ReadRasterFile()
     print(predict_rr.raster_ds_geotrans)
@@ -369,7 +371,7 @@ def AnalysisResult(_shape_path: object, _raster_predict_path: object, _raster_re
         delta_elevation_dict[i] = []
         predict_dict[i] = []
     for index, item in enumerate(point_df[_bin_level]):
-        delta_elevation_dict[int(item)].append(point_df['Delta_Ele'][index])
+        delta_elevation_dict[int(item)].append(point_df['M5'][index])
         predict_dict[int(item)].append(point_df['Predict_DH'][index])
 
     bin_rmse = []
@@ -391,9 +393,9 @@ def AnalysisResult(_shape_path: object, _raster_predict_path: object, _raster_re
         bin_predict_mean.append(np.mean(predict_dict[i]) / (_year - 2000))
         # 实际结果的分箱均值
         bin_origin_mean.append(np.mean(delta_elevation_dict[i]) / (_year - 2000))
-    total_mae = EA.mae(point_df['Delta_Ele'], point_df['Predict_DH'])
-    total_mse = EA.mse(point_df['Delta_Ele'], point_df['Predict_DH'])
-    total_rmse = EA.rmse(point_df['Delta_Ele'], point_df['Predict_DH'])
+    total_mae = EA.mae(point_df['M5'], point_df['Predict_DH'])
+    total_mse = EA.mse(point_df['M5'], point_df['Predict_DH'])
+    total_rmse = EA.rmse(point_df['M5'], point_df['Predict_DH'])
 
     print('分箱误差为:')
     for index, item in enumerate(bin_rmse):
