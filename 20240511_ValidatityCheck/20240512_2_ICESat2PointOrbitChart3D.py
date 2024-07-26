@@ -9,6 +9,7 @@ from osgeo import gdal, ogr, osr
 import os
 import ReadRasterAndShape.ReadPoint2DataFrame as RPDF
 import matplotlib.pyplot as plt
+from mpl_toolkits import mplot3d
 
 os.environ['PROJ_LIB'] = 'D:/Mambaforge/envs/mgdal_env/Library/share/proj'
 os.environ['GDAL_DATA'] = 'D:/Mambaforge/envs/mgdal_env/Library/share'
@@ -42,22 +43,33 @@ if __name__ == '__main__':
 
     # 制图
     # 绘制散点图
+
     plt.rc('font', family='Times New Roman', size=14)
     plt.figure(dpi=300)
-    plt.scatter(predict_df['Latitudes'], predict_df['Predict'], s=25, marker='^', edgecolors='#ff2442', color='none',
-                label='Predict')
-    plt.scatter(i2019_df['Latitudes'], i2019_df['H_SRTM'], s=20, marker='+', alpha=0.5, color='#1eae98',
-                label='ICESat-2 2019')
-    plt.scatter(i2020_df['Latitudes'], i2020_df['H_SRTM'], s=10, marker='D', alpha=0.4, edgecolors='#39a7ff',
-                color='none',
-                label='ICESat-2 2020')
-    plt.scatter(i2022_df['Latitudes'], i2022_df['H_SRTM'], s=10, marker='o', alpha=0.4, edgecolors='#ff9843',
-                color='none',
-                label='ICESat-2 2022')
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    ax.scatter(predict_df['Latitudes'], predict_df['Longitudes'], predict_df['Predict'], s=15, color='none',
+               edgecolors="#DC143C",
+               marker='^',
+               label='Predict')
+
+    ax.scatter(i2019_df['Latitudes'], i2019_df['Longitudes'], i2019_df['H_SRTM'], s=10, marker='o', alpha=0.5,
+               color='none',
+               edgecolors="#fba834",
+               label='ICESat-2 2019')
+    ax.scatter(i2020_df['Latitudes'], i2020_df['Longitudes'], i2020_df['H_SRTM'], s=10, marker='o', alpha=0.5,
+               color='none',
+               edgecolors="#0779e4",
+               label='ICESat-2 2020')
+    ax.scatter(i2022_df['Latitudes'], i2022_df['Longitudes'], i2022_df['H_SRTM'], s=10, marker='o', alpha=0.5,
+               color='none',
+               edgecolors="#007944",
+               label='ICESat-2 2022')
+    ax.view_init(elev=22, azim=46)
     # plt.title(_title)
-    plt.xlabel('Latitudes (°)', fontweight='bold')
-    plt.ylabel('Elevation Difference (m)', fontweight='bold')
+    ax.set_xlabel('Latitudes (°)', fontweight='bold')
+    ax.set_ylabel('Longitudes (°)', fontweight='bold')
+    ax.set_zlabel('Elevation Difference (m)', fontweight='bold')
     plt.legend(prop={'size': 14})
     plt.tight_layout()
-    plt.savefig(r"E:\Glacier_DEM_Register\Tanggula_FourYear_Data\Statistics_Data_20240511\Image\20240512_2_OrbitContract.jpeg")
     plt.show()
